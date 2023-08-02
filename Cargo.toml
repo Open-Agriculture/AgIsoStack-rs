@@ -1,0 +1,9 @@
+[package]
+name = "ag-iso-stack"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A Free ISO-11783 and J1939 CAN Stack"
+keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smart-farming", "iso11783"]
+
+[dependencies]
