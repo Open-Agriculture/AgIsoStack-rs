@@ -12,8 +12,14 @@ mod driver;
 mod frame;
 mod pgn;
 
+#[cfg(feature = "socketcan")]
+mod socketcan;
+
 pub use address::Address;
 pub use can_id::{CanId, Priority, Type};
 pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError};
 pub use frame::Frame;
 pub use pgn::Pgn;
+
+#[cfg(feature = "socketcan")]
+pub use self::socketcan::SocketcanDriver;

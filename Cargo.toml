@@ -8,3 +8,8 @@ keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smar
 
 [dependencies]
 rand = "0.8.5"
+socketcan = { version = "2.0.0", optional = true }
+
+[features]
+default = []
+socketcan = ["dep:socketcan"]
