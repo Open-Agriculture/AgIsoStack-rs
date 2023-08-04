@@ -26,7 +26,7 @@ jobs:
               uses: actions-rs/cargo@v1
               with:
                   command: doc
-                  args: --no-deps
+                  args: --no-deps --all-features
 
             - name: Prepare HTML
               run: |
