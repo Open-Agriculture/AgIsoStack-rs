@@ -1,0 +1,41 @@
+name: Build
+on: [push]
+
+jobs:
+    rustdoc:
+        runs-on: ubuntu-latest
+        env:
+            RUSTDOCFLAGS: -Dwarnings
+            CARGO_TERM_COLOR: always
+            NUM_JOBS: 2
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+                  override: true
+            - uses: Swatinem/rust-cache@v2
+
+            - name: Build documentation
+              uses: actions-rs/cargo@v1
+              with:
+                  command: doc
+                  args: --no-deps
+
+            - name: Prepare HTML
+              run: |
+                  mkdir -p ./public/
+                  # The ./target/doc/ directory has assets one level above the index.html, but it
+                  # requires relative links, so we redirect to it from one level higher.
+                  echo '<meta http-equiv="refresh" content="0; url=ag_iso_stack">' >./public/index.html
+                  cp -r target/doc/* ./public/
+
+            # TODO: Replace with docs.rs once crate publishing is figured out
+            - name: Deploy documentation
+              uses: peaceiris/actions-gh-pages@v3
+              if: github.ref == 'refs/heads/main'
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./public/
+                  force_orphan: true
