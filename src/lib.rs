@@ -6,3 +6,4 @@
 pub mod driver;
 pub mod network_management;
 pub mod object_pool;
+pub mod tracing;

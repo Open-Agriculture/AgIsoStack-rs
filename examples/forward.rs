@@ -2,7 +2,8 @@
 
 use std::sync::mpsc::channel;
 
-use ag_iso_stack::driver::{Driver, DriverReadError, Frame, SocketcanDriver};
+use ag_iso_stack::driver::{Driver, Frame, SocketcanDriver};
+use ag_iso_stack::tracing;
 use clap::Parser;
 
 /// Forward CAN traffic from one interface to another
@@ -38,7 +39,7 @@ fn main() {
     let opts = Options::parse();
 
     let subscriber = tracing_subscriber::fmt()
-        // ... add configuration
+        .with_max_level(opts.log_level)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|_err| eprintln!("Unable to set global default subscriber"))
@@ -66,17 +67,8 @@ fn main() {
 
         let mut frame = Frame::default();
 
-        match input.read_nonblocking(&mut frame) {
-            Ok(_) => {
-                tracing::info!("Read frame: {frame:?}");
-                tracing::info!("Attempting to write frame");
-                match output.write_nonblocking(&frame) {
-                    Ok(_) => tracing::info!("Wrote frame: {frame:?}"),
-                    Err(e) => tracing::info!("Failed to write frame: {e:?}"),
-                }
-            }
-            Err(DriverReadError::NoFrameReady) => {}
-            Err(e) => tracing::error!("Failed to read frame: {e:?}"),
+        if input.read_nonblocking(&mut frame).is_ok() && output.write_nonblocking(&frame).is_err() {
+            break;
         }
     }
 }
