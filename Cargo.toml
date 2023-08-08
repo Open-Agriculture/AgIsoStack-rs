@@ -8,6 +8,7 @@ keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smar
 
 [dependencies]
 rand = "0.8.5"
+pcan-basic = { version = "1.0.2", optional = true }
 socketcan = { version = "2.0.0", optional = true }
 tracing = { version = "0.1.37", optional = true }
 
@@ -17,6 +18,8 @@ default = []
 socketcan = ["dep:socketcan"]
 # Optional logging instrumentation
 tracing = ["dep:tracing"]
+# Peak driver
+peak = ["dep:pcan-basic"]
 
 [dev-dependencies]
 clap = { version = "4.3.19", features = ["derive"] }
@@ -25,4 +28,4 @@ tracing-subscriber = "0.3.17"
 
 [[example]]
 name = "forward"
-required-features = ["socketcan", "tracing"]
+required-features = ["tracing"]
