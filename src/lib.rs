@@ -1,4 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-#![allow(clippy::module_inception)]
+#![allow(clippy::bool_assert_comparison)]
+#![allow(clippy::needless_return)]
 
 pub mod network_management;
