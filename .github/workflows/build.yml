@@ -67,9 +67,11 @@ jobs:
               run: echo "pull_request_number=$(gh pr view --json number -q .number || echo "")" >> $GITHUB_OUTPUT
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - run: echo "Found PR number '${{ steps.pr.outputs.pull_request_number }}' with the github CLI"
 
-            - name: PR coverage report
+            - name: PR coverage report comment
               uses: 5monkeys/cobertura-action@v13
+              if: github.ref != 'refs/heads/main'
               with:
                   path: 'cobertura.xml'
                   repo_token: ${{ secrets.GITHUB_TOKEN }}
