@@ -1,9 +1,12 @@
 // Copyright 2023 Raven Industries inc.
+use std::time::Instant;
 
-use socketcan::{CanSocket, Socket};
+use socketcan::frame::{CanDataFrame, CanFrame, Frame};
+use socketcan::{CanSocket, EmbeddedFrame, ExtendedId, Id, Socket, StandardId};
 
 use crate::driver::{
-    Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError, Frame,
+    CanId, Channel, Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError,
+    Frame as InternalFrame, Type,
 };
 
 impl From<socketcan::Error> for DriverReadError {
@@ -24,6 +27,18 @@ impl From<socketcan::Error> for DriverWriteError {
     }
 }
 
+impl From<&InternalFrame> for socketcan::frame::CanDataFrame {
+    fn from(f: &InternalFrame) -> socketcan::frame::CanDataFrame {
+        let id = match f.id.type_() {
+            Type::Standard => Id::Standard(unsafe { StandardId::new_unchecked(f.id.raw() as u16) }),
+            Type::Extended => Id::Extended(unsafe { ExtendedId::new_unchecked(f.id.raw()) }),
+        };
+        CanDataFrame::new(id, &f.data[..f.data_length.min(8) as usize])
+            // guaranteed to not crash, because `f.data` is an [u8; 8]
+            .expect("Can frame had too much data")
+    }
+}
+
 enum SocketcanIface {
     Name(String),
     Index(u32),
@@ -35,6 +50,7 @@ enum SocketcanIface {
 pub struct SocketcanDriver {
     iface: SocketcanIface,
     sock: Option<CanSocket>,
+    opened_timestamp: Instant,
 }
 
 impl SocketcanDriver {
@@ -43,6 +59,7 @@ impl SocketcanDriver {
         Self {
             iface: SocketcanIface::Name(if_name.to_string()),
             sock: None,
+            opened_timestamp: Instant::now(),
         }
     }
 
@@ -51,6 +68,45 @@ impl SocketcanDriver {
         Self {
             iface: SocketcanIface::Index(if_index),
             sock: None,
+            opened_timestamp: Instant::now(),
+        }
+    }
+
+    fn to_frame(&self, f: CanFrame) -> InternalFrame {
+        match f {
+            CanFrame::Remote(_r) => todo!("Remote frames unsupported yet"),
+            CanFrame::Error(_e) => todo!("Error frames unsupported yet"),
+            CanFrame::Data(f) => {
+                let timestamp = self.opened_timestamp.elapsed();
+                let raw_id = f.raw_id();
+                let extended = f.is_extended();
+                let frame_type = if extended {
+                    Type::Extended
+                } else {
+                    Type::Standard
+                };
+
+                let id = CanId::new(raw_id, frame_type);
+                // TODO: The Driver trait doesn't know anything about Channels yet.
+                //
+                // The channel exists so that we can tie Frames and CANMessages back to the network
+                // manager they originated from. This channel value should be passed to the Driver
+                // when it's created (or opened?)
+                let channel = Channel::default();
+                let mut data = [0; 8];
+                let data_length = f.dlc().min(8);
+                data[..data_length].copy_from_slice(f.data());
+                let data_length = data_length as u8;
+
+                InternalFrame {
+                    timestamp,
+                    id,
+                    channel,
+                    data,
+                    data_length,
+                    extended,
+                }
+            }
         }
     }
 }
@@ -64,9 +120,8 @@ impl Driver for SocketcanDriver {
             SocketcanIface::Name(s) => self.sock = Some(CanSocket::open(s)?),
             SocketcanIface::Index(i) => self.sock = Some(CanSocket::open_iface(*i)?),
         }
-        // NOTE: To get any kind of non-blocking behavior, EVEN if using NonBlockingCan::receive()
-        // you MUST set this flag. But setting this flag causes even BlockingCan::receive() to
-        // return immediately with an error if there is no frame ready.
+        self.opened_timestamp = Instant::now();
+
         // NOTE: unwrap() is safe, because we return a DriverOpenError if we fail to create it.
         self.sock.as_ref().unwrap().set_nonblocking(true)?;
         Ok(())
@@ -76,20 +131,22 @@ impl Driver for SocketcanDriver {
         Ok(())
     }
 
-    fn read_nonblocking(&mut self, _frame: &mut Frame) -> Result<(), DriverReadError> {
+    /// Read a frame from the driver, if possible
+    ///
+    /// The timestamp on the frame is the duration since [`open`](Self::open) was last called.
+    fn read_nonblocking(&mut self, frame: &mut InternalFrame) -> Result<(), DriverReadError> {
         let Some(sock) = self.sock.as_mut() else {
             return Err(DriverReadError::DriverClosed);
         };
-        let _frame = sock.read_frame()?;
-        // TODO: Convert socketcan CanFrame to Frame.
+        let socketcan_frame = sock.read_frame()?;
+        *frame = self.to_frame(socketcan_frame);
         Ok(())
     }
-    fn write_nonblocking(&mut self, _frame: &Frame) -> Result<(), DriverWriteError> {
+    fn write_nonblocking(&mut self, frame: &InternalFrame) -> Result<(), DriverWriteError> {
         let Some(sock) = self.sock.as_mut() else {
             return Err(DriverWriteError::DriverClosed);
         };
-        // TODO: Convert Frame to socketcan CanFrame
-        let socketcan_frame = socketcan::CanFrame::default();
+        let socketcan_frame: socketcan::frame::CanDataFrame = frame.into();
         sock.write_frame(&socketcan_frame)?;
         Ok(())
     }
