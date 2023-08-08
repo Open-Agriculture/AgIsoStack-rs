@@ -7,16 +7,26 @@ use std::time::Instant;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum AddressClaimingState {
-    None,                           // Address claiming is uninitialized
-    WaitForClaim,                   // State machine is waiting for the random delay time
-    SendRequestForClaim,            // State machine is sending the request for address claim
-    WaitForRequestContentionPeriod, // State machine is waiting for the address claim contention period
-    SendPreferredAddressClaim,      // State machine is claiming the preferred address
-    ContendForPreferredAddress,     // State machine is contending the preferred address
-    SendArbitraryAddressClaim,      // State machine is claiming an address
-    SendReclaimAddressOnRequest, // An ECU requested address claim, inform the bus of our current address
-    UnableToClaim,               // State machine could not claim an address
-    AddressClaimingComplete,     // Address claiming is complete and we have an address
+    /// Address claiming is uninitialized
+    None,
+    /// State machine is waiting for the random delay time                       
+    WaitForClaim,
+    /// State machine is sending the request for address claim                
+    SendRequestForClaim,
+    /// State machine is waiting for the address claim contention period         
+    WaitForRequestContentionPeriod,
+    /// State machine is claiming the preferred address
+    SendPreferredAddressClaim,
+    /// State machine is contending the preferred address  
+    ContendForPreferredAddress,
+    /// State machine is claiming an address   
+    SendArbitraryAddressClaim,
+    /// An ECU requested address claim, inform the bus of our current address    
+    SendReclaimAddressOnRequest,
+    /// State machine could not claim an address
+    UnableToClaim,
+    /// Address claiming is complete and we have an address     
+    AddressClaimingComplete,
 }
 
 pub struct AddressClaimingData {
