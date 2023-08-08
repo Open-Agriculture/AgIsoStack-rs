@@ -1,5 +1,10 @@
-name: Build
-on: [push]
+name: Docs
+
+# Only publish documentation on changes to the main branch
+on:
+    push:
+        branches:
+            - main
 
 jobs:
     rustdoc:
@@ -9,13 +14,18 @@ jobs:
             CARGO_TERM_COLOR: always
             NUM_JOBS: 2
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions-rs/toolchain@v1
+            - name: Checkout sources
+              uses: actions/checkout@v3
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
                   profile: minimal
                   override: true
-            - uses: Swatinem/rust-cache@v2
+
+            - name: Setup cache
+              uses: Swatinem/rust-cache@v2
 
             - name: Build documentation
               uses: actions-rs/cargo@v1
