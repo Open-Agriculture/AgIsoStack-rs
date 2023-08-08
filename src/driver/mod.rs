@@ -18,7 +18,7 @@ mod socketcan;
 pub use address::Address;
 pub use can_id::{CanId, Priority, Type};
 pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError};
-pub use frame::Frame;
+pub use frame::{Channel, Frame};
 pub use pgn::Pgn;
 
 #[cfg(feature = "socketcan")]
