@@ -1,5 +1,4 @@
 // Copyright 2023 Raven Industries inc.
-#![allow(dead_code)]
 const DEFAULT_NAME: u64 = 0xFFFFFFFFFFFFFFFF;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -33,6 +32,7 @@ impl NAME {
         Self { raw_name }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn build(
         short_identity_number: u16,
         extended_identity_number: u8,
@@ -61,7 +61,7 @@ impl NAME {
 
     pub fn check_mask(name_to_check: &NAME, name_fields: &Vec<NameFieldValue>) -> bool {
         let mut matched = false;
-        if (0 != name_fields.len()) && (DEFAULT_NAME != name_to_check.raw_name) {
+        if (!name_fields.is_empty()) && (DEFAULT_NAME != name_to_check.raw_name) {
             matched = true;
 
             for field in name_fields {
