@@ -1,0 +1,109 @@
+name: CI
+
+on:
+    push: 
+    pull_request:
+        types: [opened, synchronize, reopened]
+
+env:
+    CARGO_TERM_COLOR: always
+    NUM_JOBS: 2
+    RUSTFLAGS: -Dwarnings
+
+jobs:
+    # Run Format, Lint, and Test in parallel. This way we can get feedback on all topics
+    # instead of (possibly) failing fast on the first one. It should also be faster.
+    rustfmt:
+        name: Format
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v3
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+                  override: true
+                  components: rustfmt
+                  
+            - name: Setup cache
+              uses: Swatinem/rust-cache@v2
+
+            - name: Check formatting
+              uses: actions-rs/cargo@v1
+              with:
+                  command: fmt
+                  args: --check
+                  
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v3
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+                  override: true
+                  components: clippy
+                  
+            - name: Setup cache
+              uses: Swatinem/rust-cache@v2
+
+            - name: Check linting
+              uses: actions-rs/cargo@v1
+              with:
+                  command: clippy
+                  args: --all-targets --all-features
+
+    test_coverage:
+        name: Test and coverage
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v3
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+                  override: true
+                  
+            - name: Setup cache
+              uses: Swatinem/rust-cache@v2
+
+            - name: Setup tarpaulin
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-tarpaulin
+
+            - name: Test
+              uses: actions-rs/cargo@v1
+              with:
+                  command: tarpaulin
+                  args: --release --all-features --out xml
+            
+            # TODO: Code coverage badge on README (codecov.io?)
+            
+            - name: PR coverage report comment
+              uses: 5monkeys/cobertura-action@v13
+              if: github.event_name == 'pull_request'
+              with:
+                  path: 'cobertura.xml'
+                  repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  only_changed_files: true
+                  show_line: true
+                  show_branch: true
+                  skip_covered: false
+                  # If we want to enforce a minimum coverage percentage, this is how.
+                  minimum_coverage: 0
+                  fail_below_threshold: false
