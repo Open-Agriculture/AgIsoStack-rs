@@ -7,3 +7,4 @@ description = "A Free ISO-11783 and J1939 CAN Stack"
 keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smart-farming", "iso11783"]
 
 [dependencies]
+rand = "0.8.5"
