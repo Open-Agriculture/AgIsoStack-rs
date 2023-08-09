@@ -216,4 +216,39 @@ mod tests {
         let can_id = CanId::new(0x18EEFF1C, Type::Extended);
         assert_eq!(can_id.pgn(), Pgn::from_raw(0x0EE00));
     }
+
+    #[test]
+    fn test_encode() {
+        let encode_result = CanId::encode(
+            Pgn::from_raw(0x00EF00),
+            Address(0x81),
+            Address(0xF9),
+            Priority::Six,
+        );
+        let can_id = encode_result.expect("EF00 Message was not encodable");
+        assert_eq!(can_id.pgn(), Pgn::from_raw(0xEF00));
+        assert_eq!(can_id.destination_address(), Address(0xF9));
+        assert_eq!(can_id.source_address(), Address(0x81));
+        assert_eq!(can_id.priority(), Priority::Six);
+
+        let encode_result = CanId::encode(
+            Pgn::from_raw(0x00FF40),
+            Address(0x81),
+            Address(0xFF),
+            Priority::Six,
+        );
+        let can_id = encode_result.expect("FF40 Message was not encodable");
+        assert_eq!(can_id.pgn(), Pgn::from_raw(0xFF40));
+        assert_eq!(can_id.destination_address(), Address(0xFF));
+        assert_eq!(can_id.source_address(), Address(0x81));
+        assert_eq!(can_id.priority(), Priority::Six);
+
+        let encode_result = CanId::encode(
+            Pgn::from_raw(0x00FF40),
+            Address(0x81),
+            Address(0x0F),
+            Priority::Six,
+        );
+        assert!(matches!(encode_result, Err(_)));
+    }
 }
