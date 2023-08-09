@@ -31,6 +31,7 @@ pub enum AddressClaimingState {
 
 pub struct AddressClaimingData {
     state: AddressClaimingState,
+    name: NAME,
     timestamp: Option<Instant>,
     preferred_address: u8,
     random_delay: u8,
@@ -39,7 +40,6 @@ pub struct AddressClaimingData {
 
 pub enum ControlFunction {
     Internal {
-        name: NAME,
         address_claim_data: AddressClaimingData,
     },
     External {
@@ -48,9 +48,10 @@ pub enum ControlFunction {
 }
 
 impl AddressClaimingData {
-    pub fn new(preferred_address: u8, enabled: bool) -> AddressClaimingData {
+    pub fn new(name: NAME, preferred_address: u8, enabled: bool) -> AddressClaimingData {
         AddressClaimingData {
             state: AddressClaimingState::None,
+            name,
             timestamp: None,
             preferred_address,
             random_delay: AddressClaimingData::generate_random_delay(),
@@ -83,6 +84,17 @@ impl AddressClaimingData {
         self.state = new_state;
     }
 
+    pub fn get_name(&self) -> NAME {
+        self.name
+    }
+
+    pub fn set_name(&mut self, new_name: NAME) {
+        if self.name.raw_name != new_name.raw_name {
+            self.state = AddressClaimingState::None; // Name changed, state no longer valid
+        }
+        self.name = new_name;
+    }
+
     pub fn get_timestamp(&self) -> Option<Instant> {
         self.timestamp
     }
@@ -105,6 +117,7 @@ impl Default for AddressClaimingData {
     fn default() -> AddressClaimingData {
         AddressClaimingData {
             state: AddressClaimingState::None,
+            name: NAME { raw_name: 0 },
             timestamp: None,
             preferred_address: 0xFE_u8,
             random_delay: AddressClaimingData::generate_random_delay(),
