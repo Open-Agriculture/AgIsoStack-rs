@@ -71,6 +71,34 @@ impl CanId {
         Self(raw)
     }
 
+    /// Encodes a new extended ID using the discrete parts of an identifier
+    pub fn encode(
+        parameter_group_number: Pgn,
+        source_address: Address,
+        destination_address: Address,
+        priority: Priority,
+    ) -> Result<CanId, &'static str> {
+        let mut raw_id: u32 = 0;
+
+        raw_id |= (priority as u32 & 0x07) << 26;
+        raw_id |= source_address.0 as u32;
+
+        if Address::GLOBAL == destination_address {
+            if (parameter_group_number.raw() & 0xF000) >= 0xF000 {
+                raw_id |= (parameter_group_number.raw() & 0x3FFFF) << 8;
+            } else {
+                raw_id |= (destination_address.0 as u32) << 8;
+                raw_id |= (parameter_group_number.raw() & 0x3FF00) << 8;
+            }
+        } else if (parameter_group_number.raw() & 0xF000) < 0xF000 {
+            raw_id |= (destination_address.0 as u32) << 8;
+            raw_id |= (parameter_group_number.raw() & 0x3FF00) << 8;
+        } else {
+            return Err("Cannot encode destination specific message with broadcast PGN.");
+        }
+        Ok(CanId::new(raw_id & CAN_EFF_MASK, Type::Extended))
+    }
+
     /// Get the raw value of the CAN ID
     #[inline]
     pub fn raw(&self) -> u32 {
