@@ -1,7 +1,22 @@
 // Copyright 2023 Raven Industries inc.
+#[derive(Debug, PartialEq)]
+#[non_exhaustive]
+pub enum NameFieldError {
+    /// The value of the field is out of bounds
+    OutOfBounds(NameField),
+}
+
+impl std::fmt::Display for NameFieldError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for NameFieldError {}
+
 const DEFAULT_NAME: u64 = 0xFFFFFFFFFFFFFFFF;
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum NameField {
     IdentityNumber,
     ShortIdentityNumber,
@@ -44,19 +59,23 @@ impl NAME {
         device_class_instance: u8,
         industry_group: u8,
         self_configurable_address: bool,
-    ) -> NAME {
+    ) -> Result<NAME, NameFieldError> {
         let mut new_name = NAME::new(0);
         new_name.set_short_identity_number(short_identity_number);
-        new_name.set_extended_identity_number(extended_identity_number);
-        new_name.set_manufacturer_code(manufacturer_code);
-        new_name.set_ecu_instance(ecu_instance);
-        new_name.set_function_instance(function_instance);
-        new_name.set_function(function);
-        new_name.set_device_class(device_class);
-        new_name.set_device_class_instance(device_class_instance);
-        new_name.set_industry_group(industry_group);
-        new_name.set_self_configurable_address(self_configurable_address);
         new_name
+            .set_extended_identity_number(extended_identity_number)
+            .ok();
+        new_name.set_manufacturer_code(manufacturer_code).ok();
+        new_name.set_ecu_instance(ecu_instance).ok();
+        new_name.set_function_instance(function_instance).ok();
+        new_name.set_function(function);
+        new_name.set_device_class(device_class).ok();
+        new_name
+            .set_device_class_instance(device_class_instance)
+            .ok();
+        new_name.set_industry_group(industry_group).ok();
+        new_name.set_self_configurable_address(self_configurable_address);
+        Ok(new_name)
     }
 
     pub fn get_value_by_field(&self, field: NameField) -> u32 {
@@ -76,9 +95,18 @@ impl NAME {
     }
 
     pub fn has_field_values(&self, name_fields: &[NameFieldValue]) -> bool {
-        name_fields
-            .iter()
-            .all(|field_value| self.has_field_value(*field_value))
+        let fields_present = name_fields.iter().fold(0_u16, |acc, name_field| {
+            return acc | 1 << name_field.field as u16;
+        });
+
+        let fields_satisfied = name_fields.iter().fold(0_u16, |acc, name_field| {
+            if self.has_field_value(*name_field) {
+                return acc | 1 << name_field.field as u16;
+            } else {
+                return acc;
+            }
+        });
+        return fields_satisfied == fields_present;
     }
 
     pub fn has_field_value(&self, field_value: NameFieldValue) -> bool {
@@ -90,36 +118,60 @@ impl NAME {
         ((self.raw_name >> 49) & 0x7F) as u8
     }
 
-    pub fn set_device_class(&mut self, device_class: u8) {
+    pub fn set_device_class(&mut self, device_class: u8) -> Result<(), NameFieldError> {
+        if (device_class & !0x7F) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::DeviceClass));
+        }
         self.raw_name &= !0x00FE000000000000_u64;
         self.raw_name |= ((device_class & 0x7F) as u64) << 49;
+        Ok(())
     }
 
     pub fn get_device_class_instance(&self) -> u8 {
         ((self.raw_name >> 56) & 0x0F) as u8
     }
 
-    pub fn set_device_class_instance(&mut self, device_class_instance: u8) {
+    pub fn set_device_class_instance(
+        &mut self,
+        device_class_instance: u8,
+    ) -> Result<(), NameFieldError> {
+        if (device_class_instance & !0x0F) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::DeviceClassInstance));
+        }
         self.raw_name &= !0x0F00000000000000;
         self.raw_name |= ((device_class_instance & 0x0F) as u64) << 56;
+        Ok(())
     }
 
     pub fn get_ecu_instance(&self) -> u8 {
         ((self.raw_name >> 32) & 0x07) as u8
     }
 
-    pub fn set_ecu_instance(&mut self, ecu_instance: u8) {
+    pub fn set_ecu_instance(&mut self, ecu_instance: u8) -> Result<(), NameFieldError> {
+        if (ecu_instance & !0x07) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::EcuInstance));
+        }
         self.raw_name &= !0x0000000700000000;
         self.raw_name |= ((ecu_instance & 0x07) as u64) << 32;
+        Ok(())
     }
 
     pub fn get_extended_identity_number(&self) -> u8 {
         ((self.raw_name >> 16) & 0x1F) as u8
     }
 
-    pub fn set_extended_identity_number(&mut self, extended_identity_number: u8) {
+    pub fn set_extended_identity_number(
+        &mut self,
+        extended_identity_number: u8,
+    ) -> Result<(), NameFieldError> {
+        if (extended_identity_number & !0x1F) != 0 {
+            return Err(NameFieldError::OutOfBounds(
+                NameField::ExtendedIdentityNumber,
+            ));
+        }
         self.raw_name &= !0x00000000001F0000;
         self.raw_name |= ((extended_identity_number & 0x1F) as u64) << 16;
+        Ok(())
     }
 
     pub fn get_function(&self) -> u8 {
@@ -135,36 +187,52 @@ impl NAME {
         ((self.raw_name >> 35) & 0x1F) as u8
     }
 
-    pub fn set_function_instance(&mut self, function: u8) {
+    pub fn set_function_instance(&mut self, function: u8) -> Result<(), NameFieldError> {
+        if (function & !0x1F) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::FunctionInstance));
+        }
         self.raw_name &= !0x000000F800000000;
         self.raw_name |= ((function & 0x1F) as u64) << 35;
+        Ok(())
     }
 
     pub fn get_identity_number(&self) -> u32 {
         (self.raw_name & 0x001FFFFF) as u32
     }
 
-    pub fn set_identity_number(&mut self, identity_number: u32) {
+    pub fn set_identity_number(&mut self, identity_number: u32) -> Result<(), NameFieldError> {
+        if (identity_number & !0x001FFFFF) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::IdentityNumber));
+        }
         self.raw_name &= !0x00000000001FFFFF;
-        self.raw_name |= (identity_number & 0x00000000001FFFFF) as u64;
+        self.raw_name |= (identity_number & 0x001FFFFF) as u64;
+        Ok(())
     }
 
     pub fn get_industry_group(&self) -> u8 {
         ((self.raw_name >> 60) & 0x07) as u8
     }
 
-    pub fn set_industry_group(&mut self, industry_group: u8) {
+    pub fn set_industry_group(&mut self, industry_group: u8) -> Result<(), NameFieldError> {
+        if (industry_group & !0x07) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::IndustryGroup));
+        }
         self.raw_name &= !0x7000000000000000;
         self.raw_name |= ((industry_group & 0x07) as u64) << 60;
+        Ok(())
     }
 
     pub fn get_manufacturer_code(&self) -> u16 {
         ((self.raw_name >> 21) & 0x07FF) as u16
     }
 
-    pub fn set_manufacturer_code(&mut self, manufacturer_code: u16) {
+    pub fn set_manufacturer_code(&mut self, manufacturer_code: u16) -> Result<(), NameFieldError> {
+        if (manufacturer_code & !0x7FF) != 0 {
+            return Err(NameFieldError::OutOfBounds(NameField::ManufacturerCode));
+        }
         self.raw_name &= !0x00000000FFE00000;
-        self.raw_name |= ((manufacturer_code & 0x07FF) as u64) << 21;
+        self.raw_name |= ((manufacturer_code & 0x7FF) as u64) << 21;
+        Ok(())
     }
 
     pub fn get_self_configurable_address(&self) -> bool {
@@ -195,14 +263,14 @@ mod tests {
         let mut name_under_test = NAME::new(0);
 
         name_under_test.set_self_configurable_address(true);
-        name_under_test.set_industry_group(1);
-        name_under_test.set_device_class(2);
+        assert_eq!(name_under_test.set_industry_group(1), Ok(()));
+        assert_eq!(name_under_test.set_device_class(2), Ok(()));
         name_under_test.set_function(3);
-        name_under_test.set_identity_number(4);
-        name_under_test.set_ecu_instance(5);
-        name_under_test.set_function_instance(6);
-        name_under_test.set_device_class_instance(7);
-        name_under_test.set_manufacturer_code(8);
+        assert_eq!(name_under_test.set_identity_number(4), Ok(()));
+        assert_eq!(name_under_test.set_ecu_instance(5), Ok(()));
+        assert_eq!(name_under_test.set_function_instance(6), Ok(()));
+        assert_eq!(name_under_test.set_device_class_instance(7), Ok(()));
+        assert_eq!(name_under_test.set_manufacturer_code(8), Ok(()));
 
         assert_eq!(true, name_under_test.get_self_configurable_address());
         assert_eq!(1, name_under_test.get_industry_group());
@@ -220,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let name_under_test = NAME::build(4, 0, 8, 5, 6, 3, 2, 7, 1, true);
+        let name_under_test = NAME::build(4, 0, 8, 5, 6, 3, 2, 7, 1, true).unwrap();
 
         assert_eq!(10881826125818888196_u64, name_under_test.raw_name);
     }
@@ -229,21 +297,43 @@ mod tests {
     fn test_out_of_range_properties() {
         let mut name_under_test = NAME::new(0);
 
-        name_under_test.set_industry_group(8);
-        name_under_test.set_device_class_instance(16);
-        name_under_test.set_device_class(128);
-        name_under_test.set_identity_number(2097152);
-        name_under_test.set_ecu_instance(8);
-        name_under_test.set_function_instance(32);
-        name_under_test.set_manufacturer_code(2048);
+        assert_eq!(
+            name_under_test.set_industry_group(8),
+            Err(NameFieldError::OutOfBounds(NameField::IndustryGroup))
+        );
+        assert_eq!(
+            name_under_test.set_device_class(128),
+            Err(NameFieldError::OutOfBounds(NameField::DeviceClass))
+        );
+        assert_eq!(
+            name_under_test.set_identity_number(2097152),
+            Err(NameFieldError::OutOfBounds(NameField::IdentityNumber))
+        );
+        assert_eq!(
+            name_under_test.set_ecu_instance(8),
+            Err(NameFieldError::OutOfBounds(NameField::EcuInstance))
+        );
+        assert_eq!(
+            name_under_test.set_function_instance(32),
+            Err(NameFieldError::OutOfBounds(NameField::FunctionInstance))
+        );
+        assert_eq!(
+            name_under_test.set_device_class_instance(16),
+            Err(NameFieldError::OutOfBounds(NameField::DeviceClassInstance))
+        );
+        assert_eq!(
+            name_under_test.set_manufacturer_code(2048),
+            Err(NameFieldError::OutOfBounds(NameField::ManufacturerCode))
+        );
 
-        assert_ne!(name_under_test.get_industry_group(), 8);
-        assert_ne!(name_under_test.get_device_class_instance(), 16);
-        assert_ne!(name_under_test.get_device_class(), 128);
-        assert_ne!(name_under_test.get_identity_number(), 2097152);
-        assert_ne!(name_under_test.get_ecu_instance(), 8);
-        assert_ne!(name_under_test.get_function_instance(), 32);
-        assert_ne!(name_under_test.get_manufacturer_code(), 2048);
+        // Check if the values are still the same
+        assert_eq!(name_under_test.get_industry_group(), 0);
+        assert_eq!(name_under_test.get_device_class_instance(), 0);
+        assert_eq!(name_under_test.get_device_class(), 0);
+        assert_eq!(name_under_test.get_identity_number(), 0);
+        assert_eq!(name_under_test.get_ecu_instance(), 0);
+        assert_eq!(name_under_test.get_function_instance(), 0);
+        assert_eq!(name_under_test.get_manufacturer_code(), 0);
     }
 
     #[test]
@@ -268,7 +358,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(identity_number_filter));
 
-        test_name.set_identity_number(1);
+        assert_eq!(test_name.set_identity_number(1), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(identity_number_filter));
 
@@ -280,7 +370,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(manufacturer_number_filter));
 
-        test_name.set_manufacturer_code(2);
+        assert_eq!(test_name.set_manufacturer_code(2), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(manufacturer_number_filter));
 
@@ -292,7 +382,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(ecu_instance_filter));
 
-        test_name.set_ecu_instance(3);
+        assert_eq!(test_name.set_ecu_instance(3), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(ecu_instance_filter));
 
@@ -304,7 +394,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(function_instance_filter));
 
-        test_name.set_function_instance(4);
+        assert_eq!(test_name.set_function_instance(4), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(function_instance_filter));
 
@@ -328,7 +418,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(device_class_filter));
 
-        test_name.set_device_class(6);
+        assert_eq!(test_name.set_device_class(6), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(device_class_filter));
 
@@ -340,7 +430,7 @@ mod tests {
         assert_eq!(false, test_name.has_field_values(&filters_to_test));
         assert_eq!(false, test_name.has_field_value(industry_group_filter));
 
-        test_name.set_industry_group(7);
+        assert_eq!(test_name.set_industry_group(7), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(true, test_name.has_field_value(industry_group_filter));
 
@@ -355,7 +445,7 @@ mod tests {
             test_name.has_field_value(device_class_instance_filter)
         );
 
-        test_name.set_device_class_instance(8);
+        assert_eq!(test_name.set_device_class_instance(8), Ok(()));
         assert_eq!(true, test_name.has_field_values(&filters_to_test));
         assert_eq!(
             true,
