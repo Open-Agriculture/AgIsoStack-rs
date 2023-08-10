@@ -17,7 +17,7 @@ pub enum NameField {
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct NAME {
-    pub raw_name: u64,
+    raw_name: u64,
 }
 
 impl NAME {
