@@ -25,31 +25,8 @@ impl NAME {
         Self { raw_name }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn build(
-        short_identity_number: u16,
-        extended_identity_number: u8,
-        manufacturer_code: u16,
-        ecu_instance: u8,
-        function_instance: u8,
-        function: u8,
-        device_class: u8,
-        device_class_instance: u8,
-        industry_group: u8,
-        self_configurable_address: bool,
-    ) -> NAME {
-        let mut new_name = NAME::new(0);
-        new_name.set_short_identity_number(short_identity_number);
-        new_name.set_extended_identity_number(extended_identity_number);
-        new_name.set_manufacturer_code(manufacturer_code);
-        new_name.set_ecu_instance(ecu_instance);
-        new_name.set_function_instance(function_instance);
-        new_name.set_function(function);
-        new_name.set_device_class(device_class);
-        new_name.set_device_class_instance(device_class_instance);
-        new_name.set_industry_group(industry_group);
-        new_name.set_self_configurable_address(self_configurable_address);
-        new_name
+    pub fn builder() -> NameBuilder {
+        NameBuilder::default()
     }
 
     pub fn check_mask(name_to_check: &NAME, name_fields: &Vec<NameField>) -> bool {
@@ -307,6 +284,101 @@ impl Default for NAME {
     }
 }
 
+impl From<NAME> for u64 {
+    fn from(name: NAME) -> Self {
+        name.raw_name
+    }
+}
+
+
+#[derive(Default)]
+pub struct NameBuilder {
+    self_configurable_address: bool,
+    industry_group: u8,
+    device_class_instance: u8,
+    device_class: u8,
+    function_code: u8,
+    function_instance: u8,
+    ecu_instance: u8,
+    manufacturer_code: u16,
+    identity_number: u32,
+}
+
+impl NameBuilder {
+    pub fn new() -> NameBuilder {
+        NameBuilder::default()
+    }
+
+    pub fn build(&self) -> NAME {
+        NAME {
+            raw_name: (self.self_configurable_address as u64) << 63
+                | (self.industry_group as u64 & 0x7) << 60
+                | (self.device_class_instance as u64 & 0xF) << 56
+                | (self.device_class as u64 & 0x7F) << 49
+                | (self.function_code as u64 & 0xFF) << 40
+                | (self.function_instance as u64 & 0x1F) << 35
+                | (self.ecu_instance as u64 & 0x7) << 32
+                | (self.manufacturer_code as u64 & 0x7FF) << 21
+                | self.identity_number as u64 & 0x1FFFFF,
+        }
+    }
+
+    pub fn self_configurable_address(&mut self, value: impl Into<bool>) -> &mut NameBuilder {
+        self.self_configurable_address = value.into();
+        self
+    }
+    pub fn industry_group(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.industry_group = value.into();
+        self
+    }
+    pub fn device_class_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.device_class_instance = value.into();
+        self
+    }
+    pub fn device_class(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.device_class = value.into();
+        self
+    }
+    pub fn function_code(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.function_code = value.into();
+        self
+    }
+    pub fn function_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.function_instance = value.into();
+        self
+    }
+    pub fn ecu_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
+        self.ecu_instance = value.into();
+        self
+    }
+    pub fn manufacturer_code(&mut self, value: impl Into<u16>) -> &mut NameBuilder {
+        self.manufacturer_code = value.into();
+        self
+    }
+    pub fn identity_number(&mut self, value: impl Into<u32>) -> &mut NameBuilder {
+        self.identity_number = value.into();
+        self
+    }
+}
+
+impl From<NAME> for NameBuilder {
+    fn from(value: NAME) -> Self {
+        let value: u64 = value.into();
+        NameBuilder {
+            self_configurable_address: (value >> 63) != 0,
+            industry_group: (value >> 60 & 0x7) as u8,
+            device_class_instance: (value >> 56 & 0xF) as u8,
+            device_class: (value >> 49 & 0x7F) as u8,
+            function_code: (value >> 40 & 0xFF) as u8,
+            function_instance: (value >> 35 & 0x1F) as u8,
+            ecu_instance: (value >> 32 & 0x7) as u8,
+            manufacturer_code: (value >> 21 & 0x7FF) as u16,
+            identity_number: (value & 0x1FFFFF) as u32,
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -340,10 +412,20 @@ mod tests {
     }
 
     #[test]
-    fn test_builder() {
-        let name_under_test = NAME::build(4, 0, 8, 5, 6, 3, 2, 7, 1, true);
+    fn test_name_builder() {
+        let name_under_test = NAME::builder()
+            .identity_number(4_u32)
+            .manufacturer_code(8_u16)
+            .ecu_instance(5)
+            .function_instance(6)
+            .function_code(3)
+            .device_class(2)
+            .device_class_instance(7)
+            .industry_group(1)
+            .self_configurable_address(true)
+            .build();
 
-        assert_eq!(10881826125818888196_u64, name_under_test.raw_name);
+        assert_eq!(10881826125818888196_u64, name_under_test.into());
     }
 
     #[test]
