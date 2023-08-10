@@ -8,6 +8,8 @@ use super::{DeviceClass, FunctionCode, IndustryGroup, NAME};
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum NameFilter {
     IdentityNumber(u32),
+    ShortIdentityNumber(u16),   //< Raven specific
+    ExtendedIdentityNumber(u8), //< Raven specific
     ManufacturerCode(u16),
     EcuInstance(u8),
     FunctionInstance(u8),
@@ -23,6 +25,8 @@ impl NameFilter {
     pub fn match_filter(&self, name: &NAME) -> bool {
         match self {
             NameFilter::IdentityNumber(val) => name.identity_number() == *val,
+            NameFilter::ShortIdentityNumber(val) => name.short_identity_number() == *val,
+            NameFilter::ExtendedIdentityNumber(val) => name.extended_identity_number() == *val,
             NameFilter::ManufacturerCode(val) => name.manufacturer_code() == *val,
             NameFilter::EcuInstance(val) => name.ecu_instance() == *val,
             NameFilter::FunctionInstance(val) => name.function_instance() == *val,
