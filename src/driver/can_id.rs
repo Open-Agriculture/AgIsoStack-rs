@@ -49,6 +49,14 @@ pub enum Type {
     Extended = 0x1,
 }
 
+#[derive(Debug, Clone)]
+pub struct EncodingError {
+    pub priority: Priority,
+    pub parameter_group_number: Pgn,
+    pub source_address: Address,
+    pub destination_address: Address,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct CanId(u32);
@@ -72,12 +80,43 @@ impl CanId {
     }
 
     /// Encodes a new extended ID using the discrete parts of an identifier
-    pub fn encode(
+    pub fn try_encode(
         parameter_group_number: Pgn,
         source_address: Address,
         destination_address: Address,
         priority: Priority,
-    ) -> Result<CanId, &'static str> {
+    ) -> Result<CanId, EncodingError> {
+        if destination_address != Address::GLOBAL && parameter_group_number.is_broadcast() {
+            return Err(EncodingError {
+                priority,
+                parameter_group_number,
+                source_address,
+                destination_address,
+            });
+        }
+        Ok(unsafe {
+            CanId::encode_unchecked(
+                parameter_group_number,
+                source_address,
+                destination_address,
+                priority,
+            )
+        })
+    }
+
+    /// Encodes a new extended ID using the discrete parts of an identifier but won't validate
+    /// your combination of PGN and destination address.
+    ///
+    /// # Safety
+    /// Calling this without validating your PGN and destination address combination may result in your PGN field
+    /// getting trashed. Specifically, the risk is when you are using a broadcast PGN but supply a non-0xFF
+    /// destination address.
+    pub unsafe fn encode_unchecked(
+        parameter_group_number: Pgn,
+        source_address: Address,
+        destination_address: Address,
+        priority: Priority,
+    ) -> CanId {
         let mut raw_id: u32 = 0;
 
         raw_id |= (priority as u32 & 0x07) << 26;
@@ -93,10 +132,8 @@ impl CanId {
         } else if (parameter_group_number.raw() & 0xF000) < 0xF000 {
             raw_id |= (destination_address.0 as u32) << 8;
             raw_id |= (parameter_group_number.raw() & 0x3FF00) << 8;
-        } else {
-            return Err("Cannot encode destination specific message with broadcast PGN.");
         }
-        Ok(CanId::new(raw_id & CAN_EFF_MASK, Type::Extended))
+        CanId::new(raw_id & CAN_EFF_MASK, Type::Extended)
     }
 
     /// Get the raw value of the CAN ID
@@ -219,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        let encode_result = CanId::encode(
+        let encode_result = CanId::try_encode(
             Pgn::from_raw(0x00EF00),
             Address(0x81),
             Address(0xF9),
@@ -231,7 +268,7 @@ mod tests {
         assert_eq!(can_id.source_address(), Address(0x81));
         assert_eq!(can_id.priority(), Priority::Six);
 
-        let encode_result = CanId::encode(
+        let encode_result = CanId::try_encode(
             Pgn::from_raw(0x00FF40),
             Address(0x81),
             Address(0xFF),
@@ -243,12 +280,18 @@ mod tests {
         assert_eq!(can_id.source_address(), Address(0x81));
         assert_eq!(can_id.priority(), Priority::Six);
 
-        let encode_result = CanId::encode(
+        let encode_result = CanId::try_encode(
             Pgn::from_raw(0x00FF40),
             Address(0x81),
             Address(0x0F),
             Priority::Six,
         );
         assert!(matches!(encode_result, Err(_)));
+
+        let error_contents: EncodingError = encode_result.unwrap_err();
+        assert_eq!(error_contents.priority, Priority::Six);
+        assert_eq!(error_contents.source_address, Address(0x81));
+        assert_eq!(error_contents.destination_address, Address(0x0F));
+        assert_eq!(error_contents.parameter_group_number, Pgn::from_raw(0xFF40));
     }
 }
