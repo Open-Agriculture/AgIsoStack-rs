@@ -1,6 +1,4 @@
 // Copyright 2023 Raven Industries inc.
-#![allow(dead_code)]
-
 use super::name::DEFAULT_NAME;
 use super::name::NAME;
 use crate::driver::CanId;
