@@ -9,7 +9,7 @@ use device_class::DeviceClass;
 mod function_code;
 use function_code::FunctionCode;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Default, Copy, Clone, PartialEq)]
 pub struct NAME {
     raw_name: u64,
 }
@@ -130,14 +130,6 @@ impl NAME {
     pub fn set_short_identity_number(&mut self, short_identity_number: u16) {
         self.raw_name &= !0x000000000000FFFF;
         self.raw_name |= short_identity_number as u64;
-    }
-}
-
-impl Default for NAME {
-    fn default() -> Self {
-        Self {
-            raw_name: 0xFFFFFFFFFFFFFFFF,
-        }
     }
 }
 
