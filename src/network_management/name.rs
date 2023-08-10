@@ -3,23 +3,17 @@ const DEFAULT_NAME: u64 = 0xFFFFFFFFFFFFFFFF;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NameField {
-    IdentityNumber,
-    ShortIdentityNumber,
-    ExtendedIdentityNumber,
-    ManufacturerCode,
-    EcuInstance,
-    FunctionInstance,
-    Function,
-    DeviceClass,
-    DeviceClassInstance,
-    IndustryGroup,
-    SelfConfigurableAddress,
-}
-
-#[derive(Copy, Clone)]
-pub struct NameFieldValue {
-    pub value: u32,
-    pub field: NameField,
+    IdentityNumber(u32),
+    ShortIdentityNumber(u16),
+    ExtendedIdentityNumber(u8),
+    ManufacturerCode(u16),
+    EcuInstance(u8),
+    FunctionInstance(u8),
+    Function(u8),
+    DeviceClass(u8),
+    DeviceClassInstance(u8),
+    IndustryGroup(u8),
+    SelfConfigurableAddress(bool),
 }
 
 #[derive(Copy, Clone)]
@@ -59,14 +53,14 @@ impl NAME {
         new_name
     }
 
-    pub fn check_mask(name_to_check: &NAME, name_fields: &Vec<NameFieldValue>) -> bool {
+    pub fn check_mask(name_to_check: &NAME, name_fields: &Vec<NameField>) -> bool {
         let mut matched = false;
         if (!name_fields.is_empty()) && (DEFAULT_NAME != name_to_check.raw_name) {
             matched = true;
 
             for field in name_fields {
-                if NameField::IdentityNumber == field.field {
-                    if field.value == name_to_check.get_identity_number() {
+                if let NameField::IdentityNumber(value) = field {
+                    if *value == name_to_check.get_identity_number() {
                         matched = true;
                         break;
                     } else {
@@ -77,8 +71,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::ShortIdentityNumber == field.field {
-                        if field.value == name_to_check.get_short_identity_number() as u32 {
+                    if let NameField::ShortIdentityNumber(value) = field {
+                        if *value == name_to_check.get_short_identity_number() {
                             matched = true;
                             break;
                         } else {
@@ -90,8 +84,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::ExtendedIdentityNumber == field.field {
-                        if field.value == name_to_check.get_extended_identity_number() as u32 {
+                    if let NameField::ExtendedIdentityNumber(value) = field {
+                        if *value == name_to_check.get_extended_identity_number() {
                             matched = true;
                             break;
                         } else {
@@ -103,8 +97,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::ManufacturerCode == field.field {
-                        if field.value == name_to_check.get_manufacturer_code() as u32 {
+                    if let NameField::ManufacturerCode(value) = field {
+                        if *value == name_to_check.get_manufacturer_code() {
                             matched = true;
                             break;
                         } else {
@@ -116,8 +110,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::EcuInstance == field.field {
-                        if field.value == name_to_check.get_ecu_instance() as u32 {
+                    if let NameField::EcuInstance(value) = field {
+                        if *value == name_to_check.get_ecu_instance() {
                             matched = true;
                             break;
                         } else {
@@ -129,8 +123,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::FunctionInstance == field.field {
-                        if field.value == name_to_check.get_function_instance() as u32 {
+                    if let NameField::FunctionInstance(value) = field {
+                        if *value == name_to_check.get_function_instance() {
                             matched = true;
                             break;
                         } else {
@@ -142,8 +136,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::Function == field.field {
-                        if field.value == name_to_check.get_function() as u32 {
+                    if let NameField::Function(value) = field {
+                        if *value == name_to_check.get_function() {
                             matched = true;
                             break;
                         } else {
@@ -155,8 +149,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::DeviceClass == field.field {
-                        if field.value == name_to_check.get_device_class() as u32 {
+                    if let NameField::DeviceClass(value) = field {
+                        if *value == name_to_check.get_device_class() {
                             matched = true;
                             break;
                         } else {
@@ -168,8 +162,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::DeviceClassInstance == field.field {
-                        if field.value == name_to_check.get_device_class_instance() as u32 {
+                    if let NameField::DeviceClassInstance(value) = field {
+                        if *value == name_to_check.get_device_class_instance() {
                             matched = true;
                             break;
                         } else {
@@ -181,8 +175,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::IndustryGroup == field.field {
-                        if field.value == name_to_check.get_industry_group() as u32 {
+                    if let NameField::IndustryGroup(value) = field {
+                        if *value == name_to_check.get_industry_group() {
                             matched = true;
                             break;
                         } else {
@@ -194,8 +188,8 @@ impl NAME {
 
             if matched {
                 for field in name_fields {
-                    if NameField::SelfConfigurableAddress == field.field {
-                        if field.value == name_to_check.get_self_configurable_address() as u32 {
+                    if let NameField::SelfConfigurableAddress(value) = field {
+                        if *value == name_to_check.get_self_configurable_address() {
                             matched = true;
                             break;
                         } else {
@@ -382,90 +376,63 @@ mod tests {
     fn test_filter_matching() {
         let mut test_name = NAME::new(0);
         let mut filters_to_test = Vec::new();
-        let identity_number_filter = NameFieldValue {
-            value: 1,
-            field: NameField::IdentityNumber,
-        };
+        let identity_number_filter = NameField::IdentityNumber(1);
         filters_to_test.push(identity_number_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_identity_number(1);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let manufacturer_number_filter = NameFieldValue {
-            value: 2,
-            field: NameField::ManufacturerCode,
-        };
+        let manufacturer_number_filter = NameField::ManufacturerCode(2);
         filters_to_test.push(manufacturer_number_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_manufacturer_code(2);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let ecu_instance_filter = NameFieldValue {
-            value: 3,
-            field: NameField::EcuInstance,
-        };
+        let ecu_instance_filter = NameField::EcuInstance(3);
         filters_to_test.push(ecu_instance_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_ecu_instance(3);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let function_instance_filter = NameFieldValue {
-            value: 4,
-            field: NameField::FunctionInstance,
-        };
+        let function_instance_filter = NameField::FunctionInstance(4);
         filters_to_test.push(function_instance_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_function_instance(4);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let function_filter = NameFieldValue {
-            value: 5,
-            field: NameField::Function,
-        };
+        let function_filter = NameField::Function(5);
         filters_to_test.push(function_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_function(5);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let device_class_filter = NameFieldValue {
-            value: 6,
-            field: NameField::DeviceClass,
-        };
+        let device_class_filter = NameField::DeviceClass(6);
         filters_to_test.push(device_class_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_device_class(6);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let industry_group_filter = NameFieldValue {
-            value: 7,
-            field: NameField::IndustryGroup,
-        };
+        let industry_group_filter = NameField::IndustryGroup(7);
         filters_to_test.push(industry_group_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_industry_group(7);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let device_class_instance_filter = NameFieldValue {
-            value: 8,
-            field: NameField::DeviceClassInstance,
-        };
+        let device_class_instance_filter = NameField::DeviceClassInstance(8);
         filters_to_test.push(device_class_instance_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
         test_name.set_device_class_instance(8);
         assert_eq!(true, NAME::check_mask(&test_name, &filters_to_test));
 
-        let self_configurable_address_filter = NameFieldValue {
-            value: true as u32,
-            field: NameField::SelfConfigurableAddress,
-        };
+        let self_configurable_address_filter = NameField::SelfConfigurableAddress(true);
         filters_to_test.push(self_configurable_address_filter);
 
         assert_eq!(false, NAME::check_mask(&test_name, &filters_to_test));
