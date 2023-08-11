@@ -12,7 +12,9 @@ use super::IndustryGroup;
 /// let device_class: DeviceClass = DeviceClass::Fertilizers;
 ///
 /// assert_eq!(device_class, DeviceClass::from((5, IndustryGroup::AgriculturalAndForestryEquipment)));
+/// assert_eq!(device_class, (5, IndustryGroup::AgriculturalAndForestryEquipment).into());
 /// assert_eq!(5, u8::from(device_class));
+/// assert_eq!(5_u8, device_class.into());
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum DeviceClass {
@@ -110,6 +112,7 @@ impl core::fmt::Display for DeviceClass {
 /// # use ag_iso_stack::network_management::name::DeviceClass;
 ///
 /// assert_eq!(5, u8::from(DeviceClass::Fertilizers));
+/// assert_eq!(5_u8, DeviceClass::Fertilizers.into());
 /// ```
 impl From<DeviceClass> for u8 {
     fn from(value: DeviceClass) -> Self {
@@ -196,6 +199,7 @@ impl From<DeviceClass> for u8 {
 /// # use ag_iso_stack::network_management::name::{IndustryGroup, DeviceClass};
 ///
 /// assert_eq!(DeviceClass::Fertilizers, DeviceClass::from((5, IndustryGroup::AgriculturalAndForestryEquipment)));
+/// assert_eq!(DeviceClass::Fertilizers, (5, IndustryGroup::AgriculturalAndForestryEquipment).into());
 /// ```
 #[rustfmt::skip] // Skip formatting the lines inside the match statement
 impl From<(u8, IndustryGroup)> for DeviceClass {
@@ -276,6 +280,7 @@ impl From<(u8, IndustryGroup)> for DeviceClass {
 /// # use ag_iso_stack::network_management::name::{IndustryGroup, DeviceClass};
 ///
 /// assert_eq!(IndustryGroup::AgriculturalAndForestryEquipment, IndustryGroup::from(DeviceClass::Fertilizers));
+/// assert_eq!(IndustryGroup::AgriculturalAndForestryEquipment, DeviceClass::Fertilizers.into());
 /// ```
 impl From<DeviceClass> for IndustryGroup {
     fn from(value: DeviceClass) -> Self {

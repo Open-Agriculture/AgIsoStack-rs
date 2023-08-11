@@ -11,6 +11,7 @@
 /// assert_eq!(industry_group, IndustryGroup::from(2));
 /// assert_eq!(industry_group, 2.into());
 /// assert_eq!(2, u8::from(industry_group));
+/// assert_eq!(2_u8, industry_group.into());
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[repr(C)]
@@ -41,6 +42,32 @@ impl core::fmt::Display for IndustryGroup {
     }
 }
 
+/// Convert a IndustryGroup into a u8.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ag_iso_stack::network_management::name::IndustryGroup;
+///
+/// assert_eq!(2, u8::from(IndustryGroup::AgriculturalAndForestryEquipment));
+/// assert_eq!(2_u8, IndustryGroup::AgriculturalAndForestryEquipment.into());
+/// ```
+impl From<IndustryGroup> for u8 {
+    fn from(value: IndustryGroup) -> Self {
+        value as u8
+    }
+}
+
+/// Convert a u8 into a `IndustryGroup`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ag_iso_stack::network_management::name::IndustryGroup;
+///
+/// assert_eq!(IndustryGroup::AgriculturalAndForestryEquipment, IndustryGroup::from(2));
+/// assert_eq!(IndustryGroup::AgriculturalAndForestryEquipment, 2.into());
+/// ```
 impl From<u8> for IndustryGroup {
     fn from(value: u8) -> Self {
         match value {
@@ -56,11 +83,5 @@ impl From<u8> for IndustryGroup {
                 unreachable!("Internal error converting a value larger than 7 to an IndustryGroup")
             }
         }
-    }
-}
-
-impl From<IndustryGroup> for u8 {
-    fn from(value: IndustryGroup) -> Self {
-        value as u8
     }
 }
