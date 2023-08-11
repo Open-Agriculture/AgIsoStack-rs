@@ -280,7 +280,9 @@ impl NAME {
 
 impl Default for NAME {
     fn default() -> Self {
-        Self { raw_name: 0xFFFFFFFFFFFFFFFF }
+        Self {
+            raw_name: 0xFFFFFFFFFFFFFFFF,
+        }
     }
 }
 
@@ -289,7 +291,6 @@ impl From<NAME> for u64 {
         name.raw_name
     }
 }
-
 
 #[derive(Default)]
 pub struct NameBuilder {
@@ -377,7 +378,6 @@ impl From<NAME> for NameBuilder {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
