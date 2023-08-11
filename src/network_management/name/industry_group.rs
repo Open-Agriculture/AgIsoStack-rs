@@ -8,9 +8,9 @@
 /// # use ag_iso_stack::network_management::name::IndustryGroup;
 /// let industry_group: IndustryGroup = IndustryGroup::AgriculturalAndForestryEquipment;
 ///
+/// assert_eq!(industry_group, IndustryGroup::from(2));
 /// assert_eq!(industry_group, 2.into());
-/// assert_eq!(industry_group, Into::<IndustryGroup>::into(2));
-/// assert_eq!(Into::<u8>::into(industry_group), 2);
+/// assert_eq!(2, u8::from(industry_group));
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[repr(C)]
@@ -32,9 +32,8 @@ pub enum IndustryGroup {
 ///
 /// ```rust
 /// # use ag_iso_stack::network_management::name::IndustryGroup;
-/// let industry_group: IndustryGroup = IndustryGroup::AgriculturalAndForestryEquipment;
 ///
-/// assert_eq!("AgriculturalAndForestryEquipment", format!("{industry_group}"));
+/// assert_eq!("AgriculturalAndForestryEquipment", format!("{}", IndustryGroup::AgriculturalAndForestryEquipment));
 /// ```
 impl core::fmt::Display for IndustryGroup {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

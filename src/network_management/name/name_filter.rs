@@ -21,7 +21,7 @@ pub enum NameFilter {
 }
 
 impl NameFilter {
-    /// Returns true if a NAME matches this filter's component.
+    /// Returns true if `name` matches this filter's component.
     pub fn match_filter(&self, name: &NAME) -> bool {
         match self {
             NameFilter::IdentityNumber(val) => name.identity_number() == *val,

@@ -1,13 +1,13 @@
 // Copyright 2023 Raven Industries inc.
 
 mod name_filter;
-use name_filter::NameFilter;
+pub use name_filter::NameFilter;
 mod industry_group;
-use industry_group::IndustryGroup;
+pub use industry_group::IndustryGroup;
 mod device_class;
-use device_class::DeviceClass;
+pub use device_class::DeviceClass;
 mod function_code;
-use function_code::FunctionCode;
+pub use function_code::FunctionCode;
 
 #[derive(Default, Copy, Clone, PartialEq)]
 pub struct NAME {
@@ -23,68 +23,35 @@ impl NAME {
         NameBuilder::default()
     }
 
+    /// Match `self` against the provided `NameFilter`s
+    ///
+    /// Returns true, only if all filters match
     pub fn match_filters(&self, name_filters: &[NameFilter]) -> bool {
         name_filters
             .iter()
             .all(|name_filter| name_filter.match_filter(self))
     }
 
-    pub fn device_class(&self) -> DeviceClass {
-        (
-            ((self.raw_name >> 49) & 0x7F) as u8,
-            Some(self.industry_group()),
-        )
-            .into()
+    /// Raven specific
+    pub fn short_identity_number(&self) -> u16 {
+        (self.raw_name & 0x0000FFFF) as u16
     }
 
-    pub fn set_device_class(&mut self, device_class: u8) {
-        self.raw_name &= !0x00FE000000000000_u64;
-        self.raw_name |= ((device_class & 0x7F) as u64) << 49;
+    /// Raven specific
+    pub fn set_short_identity_number(&mut self, short_identity_number: u16) {
+        self.raw_name &= !0x000000000000FFFF;
+        self.raw_name |= short_identity_number as u64;
     }
 
-    pub fn device_class_instance(&self) -> u8 {
-        ((self.raw_name >> 56) & 0x0F) as u8
-    }
-
-    pub fn set_device_class_instance(&mut self, device_class_instance: u8) {
-        self.raw_name &= !0x0F00000000000000;
-        self.raw_name |= ((device_class_instance & 0x0F) as u64) << 56;
-    }
-
-    pub fn ecu_instance(&self) -> u8 {
-        ((self.raw_name >> 32) & 0x07) as u8
-    }
-
-    pub fn set_ecu_instance(&mut self, ecu_instance: u8) {
-        self.raw_name &= !0x0000000700000000;
-        self.raw_name |= ((ecu_instance & 0x07) as u64) << 32;
-    }
-
+    /// Raven specific
     pub fn extended_identity_number(&self) -> u8 {
         ((self.raw_name >> 16) & 0x1F) as u8
     }
 
+    /// Raven specific
     pub fn set_extended_identity_number(&mut self, extended_identity_number: u8) {
         self.raw_name &= !0x00000000001F0000;
         self.raw_name |= ((extended_identity_number & 0x1F) as u64) << 16;
-    }
-
-    pub fn function_code(&self) -> FunctionCode {
-        (((self.raw_name >> 40) & 0xFF) as u8).into()
-    }
-
-    pub fn set_function(&mut self, function: u8) {
-        self.raw_name &= !0x0000FF0000000000;
-        self.raw_name |= (function as u64) << 40;
-    }
-
-    pub fn function_instance(&self) -> u8 {
-        ((self.raw_name >> 35) & 0x1F) as u8
-    }
-
-    pub fn set_function_instance(&mut self, function: u8) {
-        self.raw_name &= !0x000000F800000000;
-        self.raw_name |= ((function & 0x1F) as u64) << 35;
     }
 
     pub fn identity_number(&self) -> u32 {
@@ -96,15 +63,6 @@ impl NAME {
         self.raw_name |= (identity_number & 0x00000000001FFFFF) as u64;
     }
 
-    pub fn industry_group(&self) -> IndustryGroup {
-        (((self.raw_name >> 60) & 0x07) as u8).into()
-    }
-
-    pub fn set_industry_group(&mut self, industry_group: u8) {
-        self.raw_name &= !0x7000000000000000;
-        self.raw_name |= ((industry_group & 0x07) as u64) << 60;
-    }
-
     pub fn manufacturer_code(&self) -> u16 {
         ((self.raw_name >> 21) & 0x07FF) as u16
     }
@@ -112,6 +70,62 @@ impl NAME {
     pub fn set_manufacturer_code(&mut self, manufacturer_code: u16) {
         self.raw_name &= !0x00000000FFE00000;
         self.raw_name |= ((manufacturer_code & 0x07FF) as u64) << 21;
+    }
+
+    pub fn ecu_instance(&self) -> u8 {
+        ((self.raw_name >> 32) & 0x07) as u8
+    }
+
+    pub fn set_ecu_instance(&mut self, ecu_instance: u8) {
+        self.raw_name &= !0x0000000700000000;
+        self.raw_name |= ((ecu_instance & 0x07) as u64) << 32;
+    }
+
+    pub fn function_instance(&self) -> u8 {
+        ((self.raw_name >> 35) & 0x1F) as u8
+    }
+
+    pub fn set_function_instance(&mut self, function: u8) {
+        self.raw_name &= !0x000000F800000000;
+        self.raw_name |= ((function & 0x1F) as u64) << 35;
+    }
+
+    pub fn function_code(&self) -> FunctionCode {
+        (((self.raw_name >> 40) & 0xFF) as u8).into()
+    }
+
+    pub fn set_function_code(&mut self, function_code: impl Into<u8>) {
+        self.raw_name &= !0x0000FF0000000000;
+        self.raw_name |= (function_code.into() as u64) << 40;
+    }
+
+    pub fn device_class(&self) -> DeviceClass {
+        (((self.raw_name >> 49) & 0x7F) as u8, self.industry_group()).into()
+    }
+
+    pub fn set_device_class(&mut self, device_class: DeviceClass) {
+        self.set_industry_group(device_class.into()); // Derive the industrygroup from the device class
+
+        self.raw_name &= !0x00FE000000000000_u64;
+        self.raw_name |= ((u8::from(device_class) & 0x7F) as u64) << 49;
+    }
+
+    pub fn device_class_instance(&self) -> u8 {
+        ((self.raw_name >> 56) & 0x0F) as u8
+    }
+
+    pub fn set_device_class_instance(&mut self, device_class_instance: u8) {
+        self.raw_name &= !0x0F00000000000000;
+        self.raw_name |= ((device_class_instance & 0x0F) as u64) << 56;
+    }
+
+    pub fn industry_group(&self) -> IndustryGroup {
+        (((self.raw_name >> 60) & 0x07) as u8).into()
+    }
+
+    pub fn set_industry_group(&mut self, industry_group: IndustryGroup) {
+        self.raw_name &= !0x7000000000000000;
+        self.raw_name |= ((u8::from(industry_group) & 0x07) as u64) << 60;
     }
 
     pub fn self_configurable_address(&self) -> bool {
@@ -122,15 +136,6 @@ impl NAME {
         self.raw_name &= !0x8000000000000000;
         self.raw_name |= (self_configurable_address as u64) << 63;
     }
-
-    pub fn short_identity_number(&self) -> u16 {
-        (self.raw_name & 0x0000FFFF) as u16
-    }
-
-    pub fn set_short_identity_number(&mut self, short_identity_number: u16) {
-        self.raw_name &= !0x000000000000FFFF;
-        self.raw_name |= short_identity_number as u64;
-    }
 }
 
 impl From<NAME> for u64 {
@@ -139,17 +144,54 @@ impl From<NAME> for u64 {
     }
 }
 
+impl core::fmt::Display for NAME {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "0x{:08X}", self.raw_name)
+    }
+}
+
+impl core::fmt::Debug for NAME {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("NAME")
+            .field(
+                "identity_number",
+                &format_args!("{}", self.identity_number()),
+            )
+            .field(
+                "manufacturer_code",
+                &format_args!("{}", self.manufacturer_code()),
+            )
+            .field("ecu_instance", &format_args!("{}", self.ecu_instance()))
+            .field(
+                "function_instance",
+                &format_args!("{}", self.function_instance()),
+            )
+            .field("function_code", &format_args!("{}", self.function_code()))
+            .field("device_class", &format_args!("{}", self.device_class()))
+            .field(
+                "device_class_instance",
+                &format_args!("{}", self.device_class_instance()),
+            )
+            .field("industry_group", &format_args!("{}", self.industry_group()))
+            .field(
+                "self_configurable_address",
+                &format_args!("{}", self.self_configurable_address()),
+            )
+            .finish()
+    }
+}
+
 #[derive(Default)]
 pub struct NameBuilder {
-    self_configurable_address: bool,
-    industry_group: u8,
-    device_class_instance: u8,
-    device_class: u8,
-    function_code: u8,
-    function_instance: u8,
-    ecu_instance: u8,
-    manufacturer_code: u16,
     identity_number: u32,
+    manufacturer_code: u16,
+    ecu_instance: u8,
+    function_instance: u8,
+    function_code: FunctionCode,
+    device_class: DeviceClass,
+    device_class_instance: u8,
+    industry_group: IndustryGroup,
+    self_configurable_address: bool,
 }
 
 impl NameBuilder {
@@ -158,70 +200,81 @@ impl NameBuilder {
     }
 
     pub fn build(&self) -> NAME {
-        NAME {
-            raw_name: (self.self_configurable_address as u64) << 63
-                | (self.industry_group as u64 & 0x7) << 60
-                | (self.device_class_instance as u64 & 0xF) << 56
-                | (self.device_class as u64 & 0x7F) << 49
-                | (self.function_code as u64 & 0xFF) << 40
-                | (self.function_instance as u64 & 0x1F) << 35
-                | (self.ecu_instance as u64 & 0x7) << 32
-                | (self.manufacturer_code as u64 & 0x7FF) << 21
-                | self.identity_number as u64 & 0x1FFFFF,
-        }
+        let mut name = NAME::default();
+        name.set_identity_number(self.identity_number);
+        name.set_manufacturer_code(self.manufacturer_code);
+        name.set_ecu_instance(self.ecu_instance);
+        name.set_function_instance(self.function_instance);
+        name.set_function_code(self.function_code);
+        name.set_device_class(self.device_class);
+        name.set_device_class_instance(self.device_class_instance);
+        name.set_industry_group(self.industry_group);
+        name.set_self_configurable_address(self.self_configurable_address);
+        name
     }
 
-    pub fn self_configurable_address(&mut self, value: impl Into<bool>) -> &mut NameBuilder {
-        self.self_configurable_address = value.into();
+    /// Raven specific
+    pub fn short_identity_number(&mut self, value: u16) -> &mut NameBuilder {
+        self.identity_number &= !0x0000FFFF;
+        self.identity_number |= value as u32;
         self
     }
-    pub fn industry_group(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.industry_group = value.into();
+    /// Raven specific
+    pub fn extended_identity_number(&mut self, value: u8) -> &mut NameBuilder {
+        self.identity_number &= !0x001F0000;
+        self.identity_number |= ((value & 0x1F) as u32) << 16;
         self
     }
-    pub fn device_class_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.device_class_instance = value.into();
+    pub fn identity_number(&mut self, value: u32) -> &mut NameBuilder {
+        self.identity_number = value;
         self
     }
-    pub fn device_class(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.device_class = value.into();
+    pub fn manufacturer_code(&mut self, value: u16) -> &mut NameBuilder {
+        self.manufacturer_code = value;
         self
     }
-    pub fn function_code(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.function_code = value.into();
+    pub fn ecu_instance(&mut self, value: u8) -> &mut NameBuilder {
+        self.ecu_instance = value;
         self
     }
-    pub fn function_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.function_instance = value.into();
+    pub fn function_instance(&mut self, value: u8) -> &mut NameBuilder {
+        self.function_instance = value;
         self
     }
-    pub fn ecu_instance(&mut self, value: impl Into<u8>) -> &mut NameBuilder {
-        self.ecu_instance = value.into();
+    pub fn function_code(&mut self, value: FunctionCode) -> &mut NameBuilder {
+        self.function_code = value;
         self
     }
-    pub fn manufacturer_code(&mut self, value: impl Into<u16>) -> &mut NameBuilder {
-        self.manufacturer_code = value.into();
+    pub fn device_class(&mut self, value: DeviceClass) -> &mut NameBuilder {
+        self.device_class = value;
         self
     }
-    pub fn identity_number(&mut self, value: impl Into<u32>) -> &mut NameBuilder {
-        self.identity_number = value.into();
+    pub fn device_class_instance(&mut self, value: u8) -> &mut NameBuilder {
+        self.device_class_instance = value;
+        self
+    }
+    pub fn industry_group(&mut self, value: IndustryGroup) -> &mut NameBuilder {
+        self.industry_group = value;
+        self
+    }
+    pub fn self_configurable_address(&mut self, value: bool) -> &mut NameBuilder {
+        self.self_configurable_address = value;
         self
     }
 }
 
 impl From<NAME> for NameBuilder {
     fn from(value: NAME) -> Self {
-        let value: u64 = value.into();
         NameBuilder {
-            self_configurable_address: (value >> 63) != 0,
-            industry_group: (value >> 60 & 0x7) as u8,
-            device_class_instance: (value >> 56 & 0xF) as u8,
-            device_class: (value >> 49 & 0x7F) as u8,
-            function_code: (value >> 40 & 0xFF) as u8,
-            function_instance: (value >> 35 & 0x1F) as u8,
-            ecu_instance: (value >> 32 & 0x7) as u8,
-            manufacturer_code: (value >> 21 & 0x7FF) as u16,
-            identity_number: (value & 0x1FFFFF) as u32,
+            identity_number: value.identity_number(),
+            manufacturer_code: value.manufacturer_code(),
+            ecu_instance: value.ecu_instance(),
+            function_instance: value.function_instance(),
+            function_code: value.function_code(),
+            device_class: value.device_class(),
+            device_class_instance: value.device_class_instance(),
+            industry_group: value.industry_group(),
+            self_configurable_address: value.self_configurable_address(),
         }
     }
 }
@@ -235,9 +288,9 @@ mod tests {
         let mut name_under_test = NAME::new(0);
 
         name_under_test.set_self_configurable_address(true);
-        name_under_test.set_industry_group(1);
-        name_under_test.set_device_class(2);
-        name_under_test.set_function(3);
+        name_under_test.set_industry_group(IndustryGroup::OnHighwayEquipment);
+        name_under_test.set_device_class(DeviceClass::Tractor(IndustryGroup::OnHighwayEquipment));
+        name_under_test.set_function_code(3);
         name_under_test.set_identity_number(4);
         name_under_test.set_ecu_instance(5);
         name_under_test.set_function_instance(6);
@@ -245,9 +298,9 @@ mod tests {
         name_under_test.set_manufacturer_code(8);
 
         assert_eq!(true, name_under_test.self_configurable_address());
-        assert_eq!(1, name_under_test.industry_group().into());
-        assert_eq!(2, name_under_test.device_class().into());
-        assert_eq!(3, name_under_test.function_code().into());
+        assert_eq!(1, u8::from(name_under_test.industry_group()));
+        assert_eq!(2, u8::from(name_under_test.device_class()));
+        assert_eq!(3, u8::from(name_under_test.function_code()));
         assert_eq!(4, name_under_test.identity_number());
         assert_eq!(5, name_under_test.ecu_instance());
         assert_eq!(6, name_under_test.function_instance());
@@ -265,10 +318,10 @@ mod tests {
             .manufacturer_code(8_u16)
             .ecu_instance(5)
             .function_instance(6)
-            .function_code(3)
-            .device_class(DeviceClass::Trailer)
+            .function_code(FunctionCode::from(3))
+            .device_class(DeviceClass::from((2, IndustryGroup::from(1))))
             .device_class_instance(7)
-            .industry_group(IndustryGroup::OnHighwayEquipment)
+            .industry_group(IndustryGroup::from(1))
             .self_configurable_address(true)
             .build();
 
@@ -279,17 +332,13 @@ mod tests {
     fn test_out_of_range_properties() {
         let mut name_under_test = NAME::new(0);
 
-        name_under_test.set_industry_group(8);
         name_under_test.set_device_class_instance(16);
-        name_under_test.set_device_class(128);
         name_under_test.set_identity_number(2097152);
         name_under_test.set_ecu_instance(8);
         name_under_test.set_function_instance(32);
         name_under_test.set_manufacturer_code(2048);
 
-        assert_ne!(name_under_test.industry_group(), 8);
         assert_ne!(name_under_test.device_class_instance(), 16);
-        assert_ne!(name_under_test.device_class(), 128);
         assert_ne!(name_under_test.identity_number(), 2097151);
         assert_ne!(name_under_test.ecu_instance(), 8);
         assert_ne!(name_under_test.function_instance(), 32);
@@ -304,6 +353,7 @@ mod tests {
 
         assert_eq!(test_value, name_under_test1.raw_name);
         assert_eq!(name_under_test1.raw_name, name_under_test2.raw_name);
+        assert_eq!(name_under_test1, name_under_test2);
     }
 
     #[test]
@@ -338,25 +388,28 @@ mod tests {
         test_name.set_function_instance(4);
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
-        let function_filter = NameFilter::FunctionCode(5);
+        let function_filter = NameFilter::FunctionCode(FunctionCode::MachineControl);
         filters_to_test.push(function_filter);
 
         assert_eq!(false, test_name.match_filters(&filters_to_test));
-        test_name.set_function(5);
+        test_name.set_function_code(FunctionCode::MachineControl);
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
-        let device_class_filter = NameFilter::DeviceClass(6);
+        let device_class_filter = NameFilter::DeviceClass(DeviceClass::Tractor(
+            IndustryGroup::AgriculturalAndForestryEquipment,
+        ));
         filters_to_test.push(device_class_filter);
 
         assert_eq!(false, test_name.match_filters(&filters_to_test));
-        test_name.set_device_class(6);
+        test_name.set_device_class(DeviceClass::Tractor(
+            IndustryGroup::AgriculturalAndForestryEquipment,
+        ));
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
-        let industry_group_filter = NameFilter::IndustryGroup(7);
+        let industry_group_filter =
+            NameFilter::IndustryGroup(IndustryGroup::AgriculturalAndForestryEquipment);
         filters_to_test.push(industry_group_filter);
 
-        assert_eq!(false, test_name.match_filters(&filters_to_test));
-        test_name.set_industry_group(7);
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
         let device_class_instance_filter = NameFilter::DeviceClassInstance(8);

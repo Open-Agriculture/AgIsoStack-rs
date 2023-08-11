@@ -8,11 +8,11 @@ use super::IndustryGroup;
 /// # Examples
 ///
 /// ```rust
-/// # use ag-iso-stack::name::{IndustryGroup, DeviceClass};
+/// # use ag_iso_stack::network_management::name::{IndustryGroup, DeviceClass};
 /// let device_class: DeviceClass = DeviceClass::Fertilizers;
 ///
-/// assert_eq!(device_class, Into::<DeviceClass>::into((5, Some(IndustryGroup::AgriculturalAndForestryEquipment))));
-/// assert_eq!(Into::<u8>::into(device_class), 5);
+/// assert_eq!(device_class, DeviceClass::from((5, IndustryGroup::AgriculturalAndForestryEquipment)));
+/// assert_eq!(5, u8::from(device_class));
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum DeviceClass {
@@ -92,10 +92,9 @@ pub enum DeviceClass {
 /// # Examples
 ///
 /// ```rust
-/// # use ag-iso-stack::name::DeviceClass;
-/// let device_class: DeviceClass = DeviceClass::Fertilizers;
+/// # use ag_iso_stack::network_management::name::DeviceClass;
 ///
-/// assert_eq!("Fertilizers", format!("{}", device_class));
+/// assert_eq!("Fertilizers", format!("{}", DeviceClass::Fertilizers));
 /// ```
 impl core::fmt::Display for DeviceClass {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -103,6 +102,15 @@ impl core::fmt::Display for DeviceClass {
     }
 }
 
+/// Convert a DeviceClass into a u8.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ag_iso_stack::network_management::name::DeviceClass;
+///
+/// assert_eq!(5, u8::from(DeviceClass::Fertilizers));
+/// ```
 impl From<DeviceClass> for u8 {
     fn from(value: DeviceClass) -> Self {
         match value {
@@ -178,118 +186,97 @@ impl From<DeviceClass> for u8 {
     }
 }
 
-impl From<(u8, Option<IndustryGroup>)> for DeviceClass {
-    fn from(value: (u8, Option<IndustryGroup>)) -> Self {
+/// Convert a u8 and `IndustryGroup` into a `DeviceClass`.
+/// 
+/// The `IndustryGroup` is needed becouse a u8 can represent multiple `DeviceClass`es depending on the `IndustryGroup`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ag_iso_stack::network_management::name::{IndustryGroup, DeviceClass};
+///
+/// assert_eq!(DeviceClass::Fertilizers, DeviceClass::from((5, IndustryGroup::AgriculturalAndForestryEquipment)));
+/// ```
+#[rustfmt::skip] // Skip formatting the lines inside the match statement
+impl From<(u8, IndustryGroup)> for DeviceClass {
+    fn from(value: (u8, IndustryGroup)) -> Self {
         match value {
-            (0, Some(IndustryGroup::IndustrialProcessControl)) => {
-                DeviceClass::IndustrialProcessControlStationary
-            }
-            (0, Some(ig)) => DeviceClass::NonSpecificSystem(ig),
+            (0, IndustryGroup::IndustrialProcessControl) => DeviceClass::IndustrialProcessControlStationary,
+            (0, ig) => DeviceClass::NonSpecificSystem(ig),
 
-            (1, Some(IndustryGroup::OnHighwayEquipment)) => {
-                DeviceClass::Tractor(IndustryGroup::OnHighwayEquipment)
-            }
-            (2, Some(IndustryGroup::OnHighwayEquipment)) => DeviceClass::Trailer,
+            (1, IndustryGroup::OnHighwayEquipment) => DeviceClass::Tractor(IndustryGroup::OnHighwayEquipment),
+            (2, IndustryGroup::OnHighwayEquipment) => DeviceClass::Trailer,
 
-            (1, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::Tractor(IndustryGroup::AgriculturalAndForestryEquipment)
-            }
-            (2, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Tillage,
-            (3, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::SecondaryTillage
-            }
-            (4, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::PlantersOrSeeders
-            }
-            (5, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Fertilizers,
-            (6, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Sprayers,
-            (7, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Harvesters,
-            (8, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::RootHarvesters
-            }
-            (9, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Forage,
-            (10, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Irrigation,
-            (11, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::TransportOrTrailer
-            }
-            (12, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::FarmYardOperations
-            }
-            (13, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::PoweredAuxiliaryDevices
-            }
-            (14, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::SpecialCrops
-            }
-            (15, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::EarthWork,
-            (16, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Skidder,
-            (17, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::SensorSystems
-            }
-            (19, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::TimberHarvesters
-            }
-            (20, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Forwarders,
-            (21, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::TimberLoaders
-            }
-            (22, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::TimberProcessingMachines
-            }
-            (23, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Mulchers,
-            (24, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::UtilityVehicles
-            }
-            (25, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::SlurryOrManureApplicators
-            }
-            (26, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => {
-                DeviceClass::FeedersOrMixers
-            }
-            (27, Some(IndustryGroup::AgriculturalAndForestryEquipment)) => DeviceClass::Weeders,
+            (1, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Tractor(IndustryGroup::AgriculturalAndForestryEquipment),
+            (2, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Tillage,
+            (3, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::SecondaryTillage,
+            (4, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::PlantersOrSeeders,
+            (5, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Fertilizers,
+            (6, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Sprayers,
+            (7, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Harvesters,
+            (8, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::RootHarvesters,
+            (9, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Forage,
+            (10, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Irrigation,
+            (11, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::TransportOrTrailer,
+            (12, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::FarmYardOperations,
+            (13, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::PoweredAuxiliaryDevices,
+            (14, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::SpecialCrops,
+            (15, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::EarthWork,
+            (16, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Skidder,
+            (17, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::SensorSystems,
+            (19, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::TimberHarvesters,
+            (20, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Forwarders,
+            (21, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::TimberLoaders,
+            (22, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::TimberProcessingMachines,
+            (23, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Mulchers,
+            (24, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::UtilityVehicles,
+            (25, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::SlurryOrManureApplicators,
+            (26, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::FeedersOrMixers,
+            (27, IndustryGroup::AgriculturalAndForestryEquipment) => DeviceClass::Weeders,
 
-            (1, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::SkidSteerLoader,
-            (2, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::ArticulatedDumpTruck,
-            (3, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Backhoe,
-            (4, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Crawler,
-            (5, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Excavator,
-            (6, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Forklift,
-            (7, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::FourWheelDriveLoader,
-            (8, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Grader,
-            (9, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::MillingMachine,
-            (10, Some(IndustryGroup::ConstructionEquipment)) => {
-                DeviceClass::RecyclerAndSoilStabilizer
-            }
-            (11, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::BindingAgentSpreader,
-            (12, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Paver,
-            (13, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Feeder,
-            (14, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::ScreeningPlant,
-            (15, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Stacker,
-            (16, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Roller,
-            (17, Some(IndustryGroup::ConstructionEquipment)) => DeviceClass::Crusher,
+            (1, IndustryGroup::ConstructionEquipment) => DeviceClass::SkidSteerLoader,
+            (2, IndustryGroup::ConstructionEquipment) => DeviceClass::ArticulatedDumpTruck,
+            (3, IndustryGroup::ConstructionEquipment) => DeviceClass::Backhoe,
+            (4, IndustryGroup::ConstructionEquipment) => DeviceClass::Crawler,
+            (5, IndustryGroup::ConstructionEquipment) => DeviceClass::Excavator,
+            (6, IndustryGroup::ConstructionEquipment) => DeviceClass::Forklift,
+            (7, IndustryGroup::ConstructionEquipment) => DeviceClass::FourWheelDriveLoader,
+            (8, IndustryGroup::ConstructionEquipment) => DeviceClass::Grader,
+            (9, IndustryGroup::ConstructionEquipment) => DeviceClass::MillingMachine,
+            (10, IndustryGroup::ConstructionEquipment) => DeviceClass::RecyclerAndSoilStabilizer,
+            (11, IndustryGroup::ConstructionEquipment) => DeviceClass::BindingAgentSpreader,
+            (12, IndustryGroup::ConstructionEquipment) => DeviceClass::Paver,
+            (13, IndustryGroup::ConstructionEquipment) => DeviceClass::Feeder,
+            (14, IndustryGroup::ConstructionEquipment) => DeviceClass::ScreeningPlant,
+            (15, IndustryGroup::ConstructionEquipment) => DeviceClass::Stacker,
+            (16, IndustryGroup::ConstructionEquipment) => DeviceClass::Roller,
+            (17, IndustryGroup::ConstructionEquipment) => DeviceClass::Crusher,
 
-            (10, Some(IndustryGroup::MarineEquipment)) => DeviceClass::SystemTools,
-            (20, Some(IndustryGroup::MarineEquipment)) => DeviceClass::SafetySystems,
-            (25, Some(IndustryGroup::MarineEquipment)) => DeviceClass::Gateway,
-            (30, Some(IndustryGroup::MarineEquipment)) => {
-                DeviceClass::PowerManagementAndLightingSystems
-            }
-            (40, Some(IndustryGroup::MarineEquipment)) => DeviceClass::Steeringsystems,
-            (60, Some(IndustryGroup::MarineEquipment)) => DeviceClass::NavigationSystems,
-            (70, Some(IndustryGroup::MarineEquipment)) => DeviceClass::CommunicationsSystems,
-            (80, Some(IndustryGroup::MarineEquipment)) => {
-                DeviceClass::InstrumentationOrGeneralSystems
-            }
-            (90, Some(IndustryGroup::MarineEquipment)) => DeviceClass::EnvironmentalSystems,
-            (100, Some(IndustryGroup::MarineEquipment)) => {
-                DeviceClass::DeckCargoAndFishingEquipmentSystems
-            }
+            (10, IndustryGroup::MarineEquipment) => DeviceClass::SystemTools,
+            (20, IndustryGroup::MarineEquipment) => DeviceClass::SafetySystems,
+            (25, IndustryGroup::MarineEquipment) => DeviceClass::Gateway,
+            (30, IndustryGroup::MarineEquipment) => DeviceClass::PowerManagementAndLightingSystems,
+            (40, IndustryGroup::MarineEquipment) => DeviceClass::Steeringsystems,
+            (60, IndustryGroup::MarineEquipment) => DeviceClass::NavigationSystems,
+            (70, IndustryGroup::MarineEquipment) => DeviceClass::CommunicationsSystems,
+            (80, IndustryGroup::MarineEquipment) => DeviceClass::InstrumentationOrGeneralSystems,
+            (90, IndustryGroup::MarineEquipment) => DeviceClass::EnvironmentalSystems,
+            (100, IndustryGroup::MarineEquipment) => DeviceClass::DeckCargoAndFishingEquipmentSystems,
 
             _ => DeviceClass::NotAvailable,
         }
     }
 }
 
+/// Derive the `IndustryGroup` from a `DeviceClass`.
+///
+/// # Examples
+///
+/// ```rust
+/// # use ag_iso_stack::network_management::name::{IndustryGroup, DeviceClass};
+///
+/// assert_eq!(IndustryGroup::AgriculturalAndForestryEquipment, IndustryGroup::from(DeviceClass::Fertilizers));
+/// ```
 impl From<DeviceClass> for IndustryGroup {
     fn from(value: DeviceClass) -> Self {
         match value {
