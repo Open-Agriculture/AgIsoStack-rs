@@ -3,6 +3,8 @@ use crate::driver::Address;
 use crate::network_management::name::DEFAULT_NAME;
 use crate::network_management::name::NAME;
 use rand::Rng;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use super::network_manager::{MessageQueuePriority, NetworkManager};
@@ -49,6 +51,28 @@ pub enum ControlFunction {
     },
 }
 
+impl ControlFunction {
+    pub fn new_internal_control_function(
+        name: NAME,
+        preferred_address: Address,
+        enabled: bool,
+        network: &mut NetworkManager,
+    ) -> Rc<RefCell<Self>> {
+        let cf = Rc::new(RefCell::new(ControlFunction::Internal {
+            address_claim_data: AddressClaimingData::new(name, preferred_address, enabled),
+        }));
+        network.on_new_internal_control_function(cf.clone());
+        cf
+    }
+
+    pub fn get_name(&self) -> NAME {
+        match self {
+            ControlFunction::Internal { address_claim_data } => address_claim_data.get_name(),
+            ControlFunction::External { name } => *name,
+        }
+    }
+}
+
 impl AddressClaimingState {
     pub(super) fn new() -> Self {
         Self::None
@@ -71,7 +95,8 @@ impl AddressClaimingState {
     pub(super) fn update_state_send_request_for_claim(network: &mut NetworkManager) -> Self {
         network.enqueue_can_message(
             NetworkManager::construct_request_for_address_claim(),
-            MessageQueuePriority::High);
+            MessageQueuePriority::High,
+        );
         AddressClaimingState::WaitForRequestContentionPeriod
     }
 
@@ -86,41 +111,39 @@ impl AddressClaimingState {
         {
             let is_device_at_our_address =
                 network.get_control_function_by_address(claim_to_process.get_preferred_address());
-            let device_at_our_address = match is_device_at_our_address {
-                Some(_) => is_device_at_our_address.as_ref().unwrap(),
-                None => &ControlFunction::External {
-                    name: NAME {
-                        raw_name: (DEFAULT_NAME),
-                    },
-                },
-            };
+            let is_valid_device: bool = is_device_at_our_address.is_some();
 
-            let preferred_address_name: u64 = match device_at_our_address {
-                ControlFunction::External { name } => name.raw_name,
-                ControlFunction::Internal {
-                    address_claim_data: _,
-                } => claim_to_process.get_name().raw_name,
-            };
+            if is_valid_device {
+                let preferred_address_name: u64 =
+                    match *is_device_at_our_address.as_ref().unwrap().clone().borrow() {
+                        ControlFunction::External { name } => name.raw_name,
+                        ControlFunction::Internal {
+                            address_claim_data: _,
+                        } => claim_to_process.get_name().raw_name,
+                    };
 
-            if (!claim_to_process.get_name().get_self_configurable_address()
-                && preferred_address_name > claim_to_process.get_name().raw_name)
-                || DEFAULT_NAME == preferred_address_name
-            {
-                // Either our preferred address is free, this is the best case, or:
-                // Our address is not free, but we cannot be at an arbitrary address, and the address can be stolen by us
-                AddressClaimingState::SendPreferredAddressClaim
-            } else if !claim_to_process.get_name().get_self_configurable_address() {
-                // We cannot claim because we cannot tolerate an arbitrary address, and the CF at that spot wins due to its lower ISONAME
-                AddressClaimingState::UnableToClaim
-            } else {
-                // We will move to another address if whoever is in our spot has a lower NAME
-                if preferred_address_name < claim_to_process.get_name().raw_name {
-                    // We must scan the address space and move to a free address
-                    AddressClaimingState::SendArbitraryAddressClaim
-                } else {
-                    // Our address claim wins because it's lower than the device that's in our preferred spot
+                if (!claim_to_process.get_name().get_self_configurable_address()
+                    && preferred_address_name > claim_to_process.get_name().raw_name)
+                    || DEFAULT_NAME == preferred_address_name
+                {
+                    // Either our preferred address is free, this is the best case, or:
+                    // Our address is not free, but we cannot be at an arbitrary address, and the address can be stolen by us
                     AddressClaimingState::SendPreferredAddressClaim
+                } else if !claim_to_process.get_name().get_self_configurable_address() {
+                    // We cannot claim because we cannot tolerate an arbitrary address, and the CF at that spot wins due to its lower ISONAME
+                    AddressClaimingState::UnableToClaim
+                } else {
+                    // We will move to another address if whoever is in our spot has a lower NAME
+                    if preferred_address_name < claim_to_process.get_name().raw_name {
+                        // We must scan the address space and move to a free address
+                        AddressClaimingState::SendArbitraryAddressClaim
+                    } else {
+                        // Our address claim wins because it's lower than the device that's in our preferred spot
+                        AddressClaimingState::SendPreferredAddressClaim
+                    }
                 }
+            } else {
+                AddressClaimingState::SendPreferredAddressClaim
             }
         } else {
             AddressClaimingState::WaitForRequestContentionPeriod
