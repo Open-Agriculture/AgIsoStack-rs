@@ -91,19 +91,8 @@ jobs:
               with:
                   command: tarpaulin
                   args: --release --all-features --out xml
-            
-            # TODO: Code coverage badge on README (codecov.io?)
-            
-            - name: PR coverage report comment
-              uses: 5monkeys/cobertura-action@v13
-              if: github.event_name == 'pull_request'
+                        
+            - name: Upload to codecov.io
+              uses: codecov/codecov-action@v2
               with:
-                  path: 'cobertura.xml'
-                  repo_token: ${{ secrets.GITHUB_TOKEN }}
-                  only_changed_files: true
-                  show_line: true
-                  show_branch: true
-                  skip_covered: false
-                  # If we want to enforce a minimum coverage percentage, this is how.
-                  minimum_coverage: 0
-                  fail_below_threshold: false
+                fail_ci_if_error: true
