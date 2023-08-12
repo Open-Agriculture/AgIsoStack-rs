@@ -90,7 +90,7 @@ jobs:
               uses: actions-rs/cargo@v1
               with:
                   command: tarpaulin
-                  args: --release --all-features --out xml
+                  args: --release --all-features --engine llvm --out xml
                         
             - name: Upload to codecov.io
               uses: codecov/codecov-action@v2
