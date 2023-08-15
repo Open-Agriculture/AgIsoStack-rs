@@ -42,7 +42,7 @@ impl core::fmt::Display for IndustryGroup {
     }
 }
 
-/// Convert a IndustryGroup into a u8.
+/// Convert a `IndustryGroup` into a u8.
 ///
 /// # Examples
 ///
