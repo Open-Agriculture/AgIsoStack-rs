@@ -289,8 +289,8 @@ mod tests {
 
         name_under_test.set_self_configurable_address(true);
         name_under_test.set_industry_group(IndustryGroup::OnHighwayEquipment);
-        name_under_test.set_device_class(DeviceClass::Tractor(IndustryGroup::OnHighwayEquipment));
-        name_under_test.set_function_code(3);
+        name_under_test.set_device_class(DeviceClass::Trailer);
+        name_under_test.set_function_code(FunctionCode::Transmission);
         name_under_test.set_identity_number(4);
         name_under_test.set_ecu_instance(5);
         name_under_test.set_function_instance(6);
@@ -388,11 +388,11 @@ mod tests {
         test_name.set_function_instance(4);
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
-        let function_filter = NameFilter::FunctionCode(FunctionCode::MachineControl);
+        let function_filter = NameFilter::FunctionCode(FunctionCode::VirtualTerminal);
         filters_to_test.push(function_filter);
 
         assert_eq!(false, test_name.match_filters(&filters_to_test));
-        test_name.set_function_code(FunctionCode::MachineControl);
+        test_name.set_function_code(FunctionCode::VirtualTerminal);
         assert_eq!(true, test_name.match_filters(&filters_to_test));
 
         let device_class_filter = NameFilter::DeviceClass(DeviceClass::Tractor(
