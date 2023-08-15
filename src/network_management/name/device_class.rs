@@ -104,7 +104,7 @@ impl core::fmt::Display for DeviceClass {
     }
 }
 
-/// Convert a DeviceClass into a u8.
+/// Convert a `DeviceClass` into a u8.
 ///
 /// # Examples
 ///
