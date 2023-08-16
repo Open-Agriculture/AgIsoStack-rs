@@ -176,7 +176,7 @@ impl From<ObjectType> for u8 {
             ObjectType::ColourPalette => 45,
             ObjectType::GraphicData => 46,
             ObjectType::WorkingSetSpecialControls => 47,
-            ObjectType::ScalesGraphic => 48,
+            ObjectType::ScaledGraphic => 48,
         }
     }
 }
