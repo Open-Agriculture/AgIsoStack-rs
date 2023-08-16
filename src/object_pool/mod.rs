@@ -63,7 +63,7 @@ pub enum ObjectType {
     ColourPalette = 45,
     GraphicData = 46,
     WorkingSetSpecialControls = 47,
-    ScalesGraphic = 48,
+    ScaledGraphic = 48,
 }
 
 impl TryFrom<u8> for ObjectType {
