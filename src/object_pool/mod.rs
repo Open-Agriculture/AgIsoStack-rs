@@ -231,7 +231,7 @@ pub enum Object {
     ColourPalette(ColourPalette),
     GraphicData(GraphicData),
     WorkingSetSpecialControls(WorkingSetSpecialControls),
-    ScalesGraphic(ScalesGraphic),
+    ScaledGraphic(ScaledGraphic),
 }
 
 impl Object {
