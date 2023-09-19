@@ -1,5 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-const DEFAULT_NAME: u64 = 0xFFFFFFFFFFFFFFFF;
+pub const DEFAULT_NAME: u64 = 0xFFFFFFFFFFFFFFFF;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NameField {

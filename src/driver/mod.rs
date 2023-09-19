@@ -12,11 +12,11 @@ mod driver;
 mod frame;
 mod pgn;
 
-#[cfg(feature = "peak")]
-mod peak;
-
 #[cfg(feature = "socketcan")]
 mod socketcan;
+
+#[cfg(feature = "peak")]
+mod peak;
 
 pub use address::Address;
 pub use can_id::{CanId, Priority, Type};
@@ -24,7 +24,11 @@ pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, Dri
 pub use frame::{Channel, Frame};
 pub use pgn::Pgn;
 
-#[cfg(feature = "peak")]
-pub use self::peak::{Baudrate, PeakDriver};
 #[cfg(feature = "socketcan")]
 pub use self::socketcan::SocketcanDriver;
+
+#[cfg(feature = "peak")]
+pub use self::peak::PeakDriver;
+#[cfg(feature = "peak")]
+pub use self::peak::Baudrate;
+

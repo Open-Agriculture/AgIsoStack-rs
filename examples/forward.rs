@@ -81,7 +81,7 @@ fn create_driver(iface: &str, driver: CanDriver) -> Box<dyn Driver> {
         CanDriver::Pcan => {
             let bus = parse_usb_bus(iface).unwrap();
             let baud = ag_iso_stack::driver::Baudrate::Baud250K;
-            Box::new(PeakDriver::new(bus, baud))
+            Box::new(PeakDriver::new_usb(bus, baud))
         }
         #[allow(unreachable_patterns)]
         _ => unreachable!(),
@@ -97,6 +97,10 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|_err| eprintln!("Unable to set global default subscriber"))
         .unwrap();
+
+    tracing::info!(
+        "AgIsoStack-rs example starts..."
+    );
 
     tracing::info!(
         "Forwarding CAN traffic from {} to {}",

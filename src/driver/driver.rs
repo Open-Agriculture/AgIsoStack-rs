@@ -6,10 +6,6 @@ use crate::driver::Frame;
 pub enum DriverOpenError {
     /// The driver failed to open with filesystem semantics
     IoError(std::io::Error),
-    // TODO: Here and throughout. I don't love the pcan errors. They're not real std::error::Error
-    // types, and it's not obvious what they mean. Maybe we should re-think this error design?
-    #[cfg(feature = "peak")]
-    PeakError(pcan_basic::error::PcanError),
 }
 
 impl std::fmt::Display for DriverOpenError {
@@ -21,10 +17,6 @@ impl std::error::Error for DriverOpenError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self {
             DriverOpenError::IoError(e) => Some(e),
-            // PcanError doesn't implement the Error trait
-            // DriverOpenError::PeakError(e) => Some(e),
-            #[allow(unreachable_patterns)]
-            _ => None,
         }
     }
 }
@@ -57,8 +49,6 @@ pub enum DriverReadError {
     ErrorFrame(),
     /// The driver failed to read with filesystem semantics
     IoError(std::io::Error),
-    #[cfg(feature = "peak")]
-    PeakError(pcan_basic::error::PcanError),
 }
 
 impl std::fmt::Display for DriverReadError {
@@ -89,8 +79,6 @@ pub enum DriverWriteError {
     BusError(),
     /// Some fault with filesystem semantics
     IoError(std::io::Error),
-    #[cfg(feature = "peak")]
-    PeakError(pcan_basic::error::PcanError),
 }
 
 impl std::fmt::Display for DriverWriteError {
