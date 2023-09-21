@@ -4,8 +4,17 @@ use std::time::Instant;
 use socketcan::frame::{CanDataFrame, CanFrame, Frame};
 use socketcan::{CanSocket, EmbeddedFrame, ExtendedId, Id, Socket, StandardId};
 
-use crate::driver::{
-    CanId, Channel, Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError,
+use crate::driver_implementation::{
+    Driver,
+    DriverCloseError,
+    DriverOpenError,
+    DriverReadError,
+    DriverWriteError
+};
+
+use crate::datalink_network_network_management_3_4_5::{
+    CanId,
+    Channel,
     Frame as InternalFrame, Type,
 };
 

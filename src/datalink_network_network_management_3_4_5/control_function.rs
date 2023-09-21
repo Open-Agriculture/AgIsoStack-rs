@@ -1,7 +1,7 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::Address;
-use crate::network_management::name::DEFAULT_NAME;
-use crate::network_management::name::NAME;
+use crate::datalink_network_network_management_3_4_5::Address;
+use crate::datalink_network_network_management_3_4_5::name::DEFAULT_NAME;
+use crate::datalink_network_network_management_3_4_5::name::NAME;
 use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -74,15 +74,15 @@ impl ControlFunction {
 }
 
 impl AddressClaimingState {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::None
     }
 
-    pub(super) fn update_state_none(_claim_to_process: &AddressClaimingData) -> Self {
+    pub(crate) fn update_state_none(_claim_to_process: &AddressClaimingData) -> Self {
         AddressClaimingState::WaitForClaim
     }
 
-    pub(super) fn update_state_wait_for_claim(claim_to_process: &AddressClaimingData) -> Self {
+    pub(crate) fn update_state_wait_for_claim(claim_to_process: &AddressClaimingData) -> Self {
         if Instant::now().duration_since(claim_to_process.get_timestamp().unwrap())
             > Duration::from_millis(claim_to_process.get_random_delay() as u64)
         {
@@ -92,7 +92,7 @@ impl AddressClaimingState {
         }
     }
 
-    pub(super) fn update_state_send_request_for_claim(network: &mut NetworkManager) -> Self {
+    pub(crate) fn update_state_send_request_for_claim(network: &mut NetworkManager) -> Self {
         network.enqueue_can_message(
             NetworkManager::construct_request_for_address_claim(),
             MessageQueuePriority::High,
@@ -100,7 +100,7 @@ impl AddressClaimingState {
         AddressClaimingState::WaitForRequestContentionPeriod
     }
 
-    pub(super) fn update_state_wait_for_request_contention(
+    pub(crate) fn update_state_wait_for_request_contention(
         claim_to_process: &AddressClaimingData,
         network: &mut NetworkManager,
     ) -> Self {
@@ -150,7 +150,7 @@ impl AddressClaimingState {
         }
     }
 
-    pub(super) fn update_state_send_preferred_address_claim(
+    pub(crate) fn update_state_send_preferred_address_claim(
         claim_to_process: &AddressClaimingData,
         network: &mut NetworkManager,
     ) -> Self {
@@ -164,7 +164,7 @@ impl AddressClaimingState {
         AddressClaimingState::AddressClaimingComplete
     }
 
-    pub(super) fn update_state_send_arbitrary_address_claim(
+    pub(crate) fn update_state_send_arbitrary_address_claim(
         claim_to_process: &AddressClaimingData,
         network: &mut NetworkManager,
     ) -> Self {
@@ -217,7 +217,7 @@ impl AddressClaimingData {
         self.preferred_address
     }
 
-    pub(super) fn set_preferred_address(&mut self, new_address: Address) {
+    pub(crate) fn set_preferred_address(&mut self, new_address: Address) {
         self.preferred_address = new_address;
     }
 
@@ -225,7 +225,7 @@ impl AddressClaimingData {
         self.state
     }
 
-    pub(super) fn set_state(&mut self, new_state: AddressClaimingState) {
+    pub(crate) fn set_state(&mut self, new_state: AddressClaimingState) {
         self.state = new_state;
     }
 
@@ -244,15 +244,15 @@ impl AddressClaimingData {
         self.timestamp
     }
 
-    pub(super) fn set_timestamp(&mut self, new_timestamp: Option<Instant>) {
+    pub(crate) fn set_timestamp(&mut self, new_timestamp: Option<Instant>) {
         self.timestamp = new_timestamp;
     }
 
-    pub(super) fn get_random_delay(&self) -> u8 {
+    pub(crate) fn get_random_delay(&self) -> u8 {
         self.random_delay
     }
 
-    pub(super) fn generate_random_delay() -> u8 {
+    pub(crate) fn generate_random_delay() -> u8 {
         let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
         (rng.gen_range(0..255) as f32 * 0.6_f32) as u8
     }

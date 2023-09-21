@@ -1,6 +1,6 @@
 // Copyright 2023 Raven Industries inc.
 use super::name::{DEFAULT_NAME, NAME};
-use crate::driver::CanId;
+use crate::datalink_network_network_management_3_4_5::CanId;
 
 pub struct CANMessage {
     data: Vec<u8>,
@@ -10,7 +10,7 @@ pub struct CANMessage {
 }
 
 impl CANMessage {
-    pub(super) fn new(data: Vec<u8>, identifier: CanId) -> CANMessage {
+    pub(crate) fn new(data: Vec<u8>, identifier: CanId) -> CANMessage {
         CANMessage {
             data,
             identifier,

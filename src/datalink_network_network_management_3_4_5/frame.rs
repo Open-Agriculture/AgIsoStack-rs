@@ -1,5 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::CanId;
+use crate::datalink_network_network_management_3_4_5::CanId;
 
 #[derive(Debug, Default)]
 #[repr(transparent)]

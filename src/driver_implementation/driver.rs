@@ -1,5 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::Frame;
+use crate::datalink_network_network_management_3_4_5::Frame;
 
 #[derive(Debug)]
 #[non_exhaustive]

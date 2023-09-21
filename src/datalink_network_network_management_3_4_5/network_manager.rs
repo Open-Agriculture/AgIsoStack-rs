@@ -2,16 +2,18 @@
 use std::time::Instant;
 
 use super::control_function::{AddressClaimingState, ControlFunction};
-use crate::driver::{Address, CanId, Pgn, Priority};
-use crate::network_management::can_message::CANMessage;
-use crate::network_management::common_parameter_group_numbers::CommonParameterGroupNumbers;
-use crate::network_management::name::{DEFAULT_NAME, NAME};
+use crate::datalink_network_network_management_3_4_5::{Address, CanId, Pgn, Priority};
+use crate::datalink_network_network_management_3_4_5::can_message::CANMessage;
+use crate::datalink_network_network_management_3_4_5::common_parameter_group_numbers:: {
+    CommonParameterGroupNumbers
+};
+use crate::datalink_network_network_management_3_4_5::name::{DEFAULT_NAME, NAME};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]
-pub(super) enum MessageQueuePriority {
+pub(crate) enum MessageQueuePriority {
     /// High priority messages are always sent to the driver before normal ones
     High,
     /// Normal messages are sent to the driver when no high priority messages are in the queue (todo)
@@ -65,7 +67,7 @@ impl NetworkManager {
         Address::NULL
     }
 
-    pub(super) fn on_new_internal_control_function(
+    pub(crate) fn on_new_internal_control_function(
         &mut self,
         new_cf: Rc<RefCell<ControlFunction>>,
     ) {
@@ -73,7 +75,7 @@ impl NetworkManager {
         self.address_claim_state_machines.push(new_cf);
     }
 
-    pub(super) fn get_next_free_arbitrary_address(&self) -> Address {
+    pub(crate) fn get_next_free_arbitrary_address(&self) -> Address {
         for address in 129..247 {
             let is_device_at_address = self.get_control_function_by_address(Address(address));
             let is_valid_device: bool = is_device_at_address.is_some();
@@ -98,7 +100,7 @@ impl NetworkManager {
         Address::NULL
     }
 
-    pub(super) fn construct_address_claim(source_address: Address, name: NAME) -> CANMessage {
+    pub(crate) fn construct_address_claim(source_address: Address, name: NAME) -> CANMessage {
         let address_claim = name.raw_name.to_le_bytes().to_vec();
 
         let request_id = CanId::try_encode(
@@ -110,7 +112,7 @@ impl NetworkManager {
         CANMessage::new(address_claim, request_id.unwrap())
     }
 
-    pub(super) fn construct_request_for_address_claim() -> CANMessage {
+    pub(crate) fn construct_request_for_address_claim() -> CANMessage {
         let pgn_to_request: u32 = CommonParameterGroupNumbers::AddressClaim as u32;
         let request = pgn_to_request.to_le_bytes().to_vec();
         let request_id = CanId::try_encode(
@@ -122,7 +124,7 @@ impl NetworkManager {
         CANMessage::new(request, request_id.unwrap())
     }
 
-    pub(super) fn enqueue_can_message(
+    pub(crate) fn enqueue_can_message(
         &mut self,
         message: CANMessage,
         queue_priority: MessageQueuePriority,

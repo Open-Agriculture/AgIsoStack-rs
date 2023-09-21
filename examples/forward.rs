@@ -2,7 +2,10 @@
 
 use std::sync::mpsc::channel;
 
-use ag_iso_stack::driver::{Driver, DriverReadError, Frame, SocketcanDriver};
+use ag_iso_stack::{
+    driver_implementation::{Driver, DriverReadError, SocketcanDriver},
+    datalink_network_network_management_3_4_5::{Frame}
+};
 use clap::Parser;
 
 /// Forward CAN traffic from one interface to another

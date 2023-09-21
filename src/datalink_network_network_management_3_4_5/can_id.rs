@@ -1,5 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::{Address, Pgn};
+use crate::datalink_network_network_management_3_4_5::{Address, Pgn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Priority {
