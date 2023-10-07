@@ -573,9 +573,9 @@ impl Object {
 
                 Self::write_language_pairs(&mut data, &o.language_pairs);
             }
-            Object::ScalesGraphic(o) => {
+            Object::ScaledGraphic(o) => {
                 Self::write_u16(&mut data, o.id);
-                Self::write_u8(&mut data, ObjectType::ScalesGraphic);
+                Self::write_u8(&mut data, ObjectType::ScaledGraphic);
                 Self::write_u16(&mut data, o.width);
                 Self::write_u16(&mut data, o.height);
                 Self::write_u8(&mut data, o.scale_type);
@@ -674,8 +674,8 @@ impl Object {
         let val: String = val.into();
         data.extend(val.as_bytes());
     }
-    fn write_name(data: &mut Vec<u8>, val: impl Into<Name>) {
-        let val: Name = val.into();
+    fn write_name(data: &mut Vec<u8>, val: impl Into<NAME>) {
+        let val: NAME = val.into();
         data.extend::<[u8; 8]>(val.into());
     }
 }

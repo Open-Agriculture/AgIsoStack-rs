@@ -774,7 +774,7 @@ impl Object {
 
                 Ok(Object::WorkingSetSpecialControls(o))
             }
-            ObjectType::ScalesGraphic => {
+            ObjectType::ScaledGraphic => {
                 let mut o = ScalesGraphic {
                     id,
                     width: Self::read_u16(data)?,
@@ -788,7 +788,7 @@ impl Object {
                 o.macro_refs
                     .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
 
-                Ok(Object::ScalesGraphic(o))
+                Ok(Object::ScaledGraphic(o))
             }
         }
     }
@@ -990,7 +990,7 @@ impl Object {
         }
         Ok(s)
     }
-    fn read_name(data: &mut dyn Iterator<Item = u8>) -> Result<Name, ParseError> {
+    fn read_name(data: &mut dyn Iterator<Item = u8>) -> Result<NAME, ParseError> {
         let name: [Option<u8>; 8] = [
             data.next(),
             data.next(),
@@ -1006,6 +1006,6 @@ impl Object {
             return Err(ParseError::DataEmpty);
         }
 
-        Ok(Name::from(u64::from_le_bytes(name.map(|v| v.unwrap()))))
+        Ok(NAME::new(u64::from_le_bytes(name.map(|v| v.unwrap()))))
     }
 }
