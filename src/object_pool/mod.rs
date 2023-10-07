@@ -1,12 +1,9 @@
 pub mod reader;
 pub mod writer;
 
-use alloc::{string::String, vec::Vec};
-
-use crate::name::Name;
-
 mod object_pool;
 pub use object_pool::ObjectPool;
+use crate::network_management::name::NAME;
 
 pub enum ParseError {
     DataEmpty,
@@ -119,7 +116,7 @@ impl TryFrom<u8> for ObjectType {
             45 => Ok(Self::ColourPalette),
             46 => Ok(Self::GraphicData),
             47 => Ok(Self::WorkingSetSpecialControls),
-            48 => Ok(Self::ScalesGraphic),
+            48 => Ok(Self::ScaledGraphic),
             _ => Err(ParseError::UnknownObjectType),
         }
     }
@@ -181,6 +178,49 @@ impl From<ObjectType> for u8 {
     }
 }
 
+#[derive(Debug, Default)]
+pub enum VtVersion {
+    Version0,
+    Version1,
+    Version2,
+    #[default]
+    Version3,
+    Version4,
+    Version5,
+    Version6,
+}
+
+impl From<VtVersion> for u8 {
+    fn from(vt_version: VtVersion) -> Self {
+        match vt_version {
+            VtVersion::Version0 => 0,
+            VtVersion::Version1 => 1,
+            VtVersion::Version2 => 2,
+            VtVersion::Version3 => 3,
+            VtVersion::Version4 => 4,
+            VtVersion::Version5 => 5,
+            VtVersion::Version6 => 6,
+        }
+    }
+}
+
+impl TryFrom<u8> for VtVersion {
+    type Error = ParseError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(VtVersion::Version0),
+            1 => Ok(VtVersion::Version1),
+            2 => Ok(VtVersion::Version2),
+            3 => Ok(VtVersion::Version3),
+            4 => Ok(VtVersion::Version4),
+            5 => Ok(VtVersion::Version5),
+            6 => Ok(VtVersion::Version6),
+            _ => Err(ParseError::UnknownObjectType)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Object {
     WorkingSet(WorkingSet),
@@ -231,7 +271,7 @@ pub enum Object {
     ColourPalette(ColourPalette),
     GraphicData(GraphicData),
     WorkingSetSpecialControls(WorkingSetSpecialControls),
-    ScaledGraphic(ScaledGraphic),
+    ScaledGraphic(ScalesGraphic),
 }
 
 impl Object {
@@ -285,7 +325,7 @@ impl Object {
             Object::ColourPalette(o) => o.id,
             Object::GraphicData(o) => o.id,
             Object::WorkingSetSpecialControls(o) => o.id,
-            Object::ScalesGraphic(o) => o.id,
+            Object::ScaledGraphic(o) => o.id,
         }
     }
 
@@ -341,7 +381,7 @@ impl Object {
             Object::ColourPalette(_) => ObjectType::ColourPalette,
             Object::GraphicData(_) => ObjectType::GraphicData,
             Object::WorkingSetSpecialControls(_) => ObjectType::WorkingSetSpecialControls,
-            Object::ScalesGraphic(_) => ObjectType::ScalesGraphic,
+            Object::ScaledGraphic(_) => ObjectType::ScaledGraphic,
         }
     }
 }
@@ -397,7 +437,7 @@ impl From<&[u8]> for ObjectId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ObjectRef {
     pub id: ObjectId,
     pub offset: Point<i16>,
@@ -405,7 +445,7 @@ pub struct ObjectRef {
     // pub y: i16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MacroRef {
     pub macro_id: u8,
     pub event_id: u8,
@@ -724,7 +764,7 @@ impl From<u32> for Colour {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
@@ -749,7 +789,7 @@ pub struct ObjectLabel {
     pub graphic_representation: ObjectId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct WorkingSet {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -760,7 +800,7 @@ pub struct WorkingSet {
     pub language_codes: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DataMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -769,7 +809,7 @@ pub struct DataMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AlarmMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -1211,7 +1251,7 @@ pub struct ObjectLabelReferenceList {
 pub struct ExternalObjectDefinition {
     pub id: ObjectId,
     pub options: u8,
-    pub name: Name,
+    pub name: NAME,
     pub objects: Vec<ObjectId>,
 }
 
@@ -1219,7 +1259,7 @@ pub struct ExternalObjectDefinition {
 pub struct ExternalReferenceName {
     pub id: ObjectId,
     pub options: u8,
-    pub name: Name,
+    pub name: NAME,
 }
 
 #[derive(Debug)]
