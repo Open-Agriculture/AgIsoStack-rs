@@ -425,8 +425,8 @@ impl Object {
             Object::WindowMask(o) => {
                 Self::write_u16(&mut data, o.id);
                 Self::write_u8(&mut data, ObjectType::WindowMask);
-                Self::write_u8(&mut data, o.width);
-                Self::write_u8(&mut data, o.height);
+                Self::write_u8(&mut data, o.cell_format.size().x);
+                Self::write_u8(&mut data, o.cell_format.size().y);
                 Self::write_u8(&mut data, o.window_type);
                 Self::write_u8(&mut data, o.background_colour);
                 Self::write_u8(&mut data, o.options);

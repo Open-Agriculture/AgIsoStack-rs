@@ -127,6 +127,27 @@ impl ObjectPool {
         }
     }
 
+    pub fn softkey_mask_object_by_id(&self, id: ObjectId) -> Option<&SoftKeyMask> {
+        match &self.object_by_id(id) {
+            Some(Object::SoftKeyMask(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn key_group_object_by_id(&self, id: ObjectId) -> Option<&KeyGroup> {
+        match &self.object_by_id(id) {
+            Some(Object::KeyGroup(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn window_mask_object_by_id(&self, id: ObjectId) -> Option<&WindowMask> {
+        match &self.object_by_id(id) {
+            Some(Object::WindowMask(o)) => Some(o),
+            _ => None,
+        }
+    }
+
     pub fn line_attributes_object_by_id(&self, id: ObjectId) -> Option<&LineAttributes> {
         match &self.object_by_id(id) {
             Some(Object::LineAttributes(o)) => Some(o),
@@ -358,6 +379,61 @@ mod tests {
             object_refs: vec![line_obj_am_ref],
             macro_refs: vec![],
         }, *object_pool.alarm_mask_object_by_id(ObjectId::from(2000)).unwrap());
+
+
+        /*CHECK SOFTKEY MASK*/
+
+        let softkey_obj_sm_id = ObjectId::from(5000);
+
+        assert_eq!(SoftKeyMask {
+            id: ObjectId::from(4000),
+            background_colour: 7,
+            objects: vec![softkey_obj_sm_id],
+            macro_refs: vec![],
+        }, *object_pool.softkey_mask_object_by_id(ObjectId::from(4000)).unwrap());
+
+        /*CHECK KEY GROUP*/
+
+        let key_group_options = KeyGroupOptions {
+            available: false,
+            transparent: false,
+        };
+
+        let object_pointer_obj_id = ObjectId::from(27001);
+        
+        assert_eq!(KeyGroup {
+            id: ObjectId::from(35000),
+            options: key_group_options,
+            name: ObjectId::from(11000),
+            key_group_icon: ObjectId::NULL,
+            objects: vec![object_pointer_obj_id],
+            macro_refs: vec![],
+        }, *object_pool.key_group_object_by_id(ObjectId::from(35000)).unwrap());
+
+        /*CHECK WINDOW MASK*/
+
+        let output_string_obj_id = ObjectId::from(11000);
+        let line_obj_wm_ref = ObjectRef {
+            id: ObjectId::from(13000),
+            offset: Point {x: 0, y: 0},
+        };
+
+        assert_eq!(WindowMask {
+            id: ObjectId::from(34000),
+            cell_format: WindowMaskCellFormat::CF1x1,
+            window_type: WindowType::FreeForm,
+            background_colour: 7,
+            options: WindowMaskOptions {
+                available: true,
+                transparent: true,
+            },
+            name: output_string_obj_id,
+            window_title: ObjectId::NULL,
+            window_icon: ObjectId::NULL,
+            objects: vec![],
+            object_refs: vec![line_obj_wm_ref],
+            macro_refs: vec![],
+        }, *object_pool.window_mask_object_by_id(ObjectId::from(34000)).unwrap());
 
         todo!("continue checking objects of pool of 'resources/test/AgIsoStack-rs-test-pool.iop'")
     }

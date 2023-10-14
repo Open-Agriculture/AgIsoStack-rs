@@ -569,11 +569,10 @@ impl Object {
             ObjectType::WindowMask => {
                 let mut o = WindowMask {
                     id,
-                    width: Self::read_u8(data)?,
-                    height: Self::read_u8(data)?,
-                    window_type: Self::read_u8(data)?,
+                    cell_format: Self::read_u16(data)?.into(),
+                    window_type: Self::read_u8(data)?.into(),
                     background_colour: Self::read_u8(data)?,
-                    options: Self::read_u8(data)?,
+                    options: Self::read_u8(data)?.into(),
                     name: Self::read_u16(data)?.into(),
                     window_title: Self::read_u16(data)?.into(),
                     window_icon: Self::read_u16(data)?.into(),
@@ -594,7 +593,7 @@ impl Object {
             ObjectType::KeyGroup => {
                 let mut o = KeyGroup {
                     id,
-                    options: Self::read_u8(data)?,
+                    options: KeyGroupOptions::from(Self::read_u8(data)?),
                     name: Self::read_u16(data)?.into(),
                     key_group_icon: Self::read_u16(data)?.into(),
                     objects: Vec::with_capacity(Self::read_u8(data)?.into()),
