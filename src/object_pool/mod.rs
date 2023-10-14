@@ -2,6 +2,12 @@ pub mod reader;
 pub mod writer;
 
 mod object_pool;
+
+use bitvec::field::BitField;
+use bitvec::order::{Lsb0, Msb0};
+use bitvec::vec::BitVec;
+use bitvec::view::BitView;
+use strum_macros::FromRepr;
 pub use object_pool::ObjectPool;
 use crate::network_management::name::NAME;
 
@@ -386,6 +392,136 @@ impl Object {
     }
 }
 
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
+pub enum WindowType {
+    FreeForm = 0,
+    NumericOutputValueWithUnits1x1 = 1,
+    NumericOutputValueNoUnits1x1 = 2,
+    StringOutputValue1x1 = 3,
+    NumericInputValueWithUnits1x1 = 4,
+    NumericInputValueNoUnits1x1 = 5,
+    StringInputValue1x1 = 6,
+    HorizontalLinearBargraph1x1 = 7,
+    SingleButton1x1 = 8,
+    DoubleButton1x1 = 9,
+    NumericOutputValueWithUnits2x1 = 10,
+    NumericOutputValueNoUnits2x1 = 11,
+    StringOutputValue2x1 = 12,
+    NumericInputValueWithUnits2x1 = 13,
+    NumericInputValueNoUnits2x1 = 14,
+    StringInputValue2x1 = 15,
+    HorizontalLinearBargraph2x1 = 16,
+    SingleButton2x1 = 17,
+    DoubleButton2x1 = 18,
+}
+
+impl From<u8> for WindowType {
+    fn from(value: u8) -> Self {
+        WindowType::from_repr(value).unwrap()
+    }
+}
+
+impl From<WindowType> for u8 {
+    fn from(value: WindowType) -> Self {
+        value.into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum WindowMaskCellFormat {
+    CF1x1,
+    CF1x2,
+    CF1x3,
+    CF1x4,
+    CF1x5,
+    CF1x6,
+    CF2x1,
+    CF2x2,
+    CF2x3,
+    CF2x4,
+    CF2x5,
+    CF2x6,
+}
+
+impl WindowMaskCellFormat {
+
+    const fn from_size(x: u8, y: u8) -> WindowMaskCellFormat {
+        let size = Point { x, y };
+        match size {
+            Point { x: 1, y: 1} => WindowMaskCellFormat::CF1x1,
+            Point { x: 1, y: 2} => WindowMaskCellFormat::CF1x2,
+            Point { x: 1, y: 3} => WindowMaskCellFormat::CF1x3,
+            Point { x: 1, y: 4} => WindowMaskCellFormat::CF1x4,
+            Point { x: 1, y: 5} => WindowMaskCellFormat::CF1x5,
+            Point { x: 1, y: 6} => WindowMaskCellFormat::CF1x6,
+            Point { x: 2, y: 1} => WindowMaskCellFormat::CF2x1,
+            Point { x: 2, y: 2} => WindowMaskCellFormat::CF2x2,
+            Point { x: 2, y: 3} => WindowMaskCellFormat::CF2x3,
+            Point { x: 2, y: 4} => WindowMaskCellFormat::CF2x4,
+            Point { x: 2, y: 5} => WindowMaskCellFormat::CF2x5,
+            Point { x: 2, y: 6} => WindowMaskCellFormat::CF2x6,
+            _ => WindowMaskCellFormat::CF1x1
+        }
+    }
+
+    const fn size(self) -> Point<u8> {
+        match self {
+            WindowMaskCellFormat::CF1x1 => Point { x: 1, y: 1},
+            WindowMaskCellFormat::CF1x2 => Point { x: 1, y: 2},
+            WindowMaskCellFormat::CF1x3 => Point { x: 1, y: 3},
+            WindowMaskCellFormat::CF1x4 => Point { x: 1, y: 4},
+            WindowMaskCellFormat::CF1x5 => Point { x: 1, y: 5},
+            WindowMaskCellFormat::CF1x6 => Point { x: 1, y: 6},
+            WindowMaskCellFormat::CF2x1 => Point { x: 2, y: 1},
+            WindowMaskCellFormat::CF2x2 => Point { x: 2, y: 2},
+            WindowMaskCellFormat::CF2x3 => Point { x: 2, y: 3},
+            WindowMaskCellFormat::CF2x4 => Point { x: 2, y: 4},
+            WindowMaskCellFormat::CF2x5 => Point { x: 2, y: 5},
+            WindowMaskCellFormat::CF2x6 => Point { x: 2, y: 6},
+        }
+    }
+}
+
+impl From<u16> for WindowMaskCellFormat {
+    fn from(value: u16) -> Self {
+        WindowMaskCellFormat::from_size((value << 8) as u8, value as u8)
+    }
+}
+
+impl From<WindowMaskCellFormat> for u16 {
+    fn from(value: WindowMaskCellFormat) -> Self {
+        let size = value.size();
+        ((size.x as u16) << 8) | size.y as u16
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowMaskOptions {
+    pub available: bool,
+    pub transparent: bool,
+}
+
+impl From<u8> for WindowMaskOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        WindowMaskOptions {
+            available: bit_data.pop().unwrap(),
+            transparent: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<WindowMaskOptions> for u8 {
+    fn from(value: WindowMaskOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.available);
+        bit_data.push(value.transparent);
+        bit_data.extend([0, 0, 0, 0, 0, 0]);
+        bit_data.load::<u8>()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ObjectId(u16);
 impl ObjectId {
@@ -437,7 +573,7 @@ impl From<&[u8]> for ObjectId {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectRef {
     pub id: ObjectId,
     pub offset: Point<i16>,
@@ -445,7 +581,7 @@ pub struct ObjectRef {
     // pub y: i16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct MacroRef {
     pub macro_id: u8,
     pub event_id: u8,
@@ -830,7 +966,7 @@ pub struct Container {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SoftKeyMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -1215,14 +1351,13 @@ pub struct GraphicsContext {
     pub transparency_colour: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WindowMask {
     pub id: ObjectId,
-    pub width: u8,
-    pub height: u8,
-    pub window_type: u8,
+    pub cell_format: WindowMaskCellFormat,
+    pub window_type: WindowType,
     pub background_colour: u8,
-    pub options: u8,
+    pub options: WindowMaskOptions,
     pub name: ObjectId,
     pub window_title: ObjectId,
     pub window_icon: ObjectId,
@@ -1231,10 +1366,36 @@ pub struct WindowMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct KeyGroupOptions {
+    pub available: bool,
+    pub transparent: bool,
+}
+
+impl From<u8> for KeyGroupOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        KeyGroupOptions {
+            available: bit_data.pop().unwrap(),
+            transparent: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl Into<u8> for KeyGroupOptions {
+    fn into(self) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(self.available);
+        bit_data.push(self.transparent);
+        bit_data.extend([0, 0, 0, 0, 0, 0]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyGroup {
     pub id: ObjectId,
-    pub options: u8,
+    pub options: KeyGroupOptions,
     pub name: ObjectId,
     pub key_group_icon: ObjectId,
     pub objects: Vec<ObjectId>,
