@@ -148,6 +148,48 @@ impl ObjectPool {
         }
     }
 
+    pub fn container_object_by_id(&self, id: ObjectId) -> Option<&Container> {
+        match &self.object_by_id(id) {
+            Some(Object::Container(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn key_object_by_id(&self, id: ObjectId) -> Option<&Key> {
+        match &self.object_by_id(id) {
+            Some(Object::Key(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn button_object_by_id(&self, id: ObjectId) -> Option<&Button> {
+        match &self.object_by_id(id) {
+            Some(Object::Button(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn input_boolean_object_by_id(&self, id: ObjectId) -> Option<&InputBoolean> {
+        match &self.object_by_id(id) {
+            Some(Object::InputBoolean(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn input_string_object_by_id(&self, id: ObjectId) -> Option<&InputString> {
+        match &self.object_by_id(id) {
+            Some(Object::InputString(o)) => Some(o),
+            _ => None,
+        }
+    }
+
+    pub fn input_number_object_by_id(&self, id: ObjectId) -> Option<&InputNumber> {
+        match &self.object_by_id(id) {
+            Some(Object::InputNumber(o)) => Some(o),
+            _ => None,
+        }
+    }
+
     pub fn line_attributes_object_by_id(&self, id: ObjectId) -> Option<&LineAttributes> {
         match &self.object_by_id(id) {
             Some(Object::LineAttributes(o)) => Some(o),
@@ -434,6 +476,151 @@ mod tests {
             object_refs: vec![line_obj_wm_ref],
             macro_refs: vec![],
         }, *object_pool.window_mask_object_by_id(ObjectId::from(34000)).unwrap());
+
+        /*CHECK CONTAINER*/
+
+        let polygon_obj_container_ref = ObjectRef {
+            id: ObjectId::from(16000),
+            offset: Point {x: 70, y: 0},
+        };
+
+        let rectangle_obj_container_ref = ObjectRef {
+            id: ObjectId::from(14000),
+            offset: Point {x: 0, y: 50},
+        };
+
+        let output_string_obj_container_ref = ObjectRef {
+            id: ObjectId::from(11000),
+            offset: Point {x: 50, y: 50},
+        };
+
+        assert_eq!(Container {
+            id: ObjectId::from(3000),
+            width: 110,
+            height: 80,
+            hidden: false,
+            object_refs: vec![
+                polygon_obj_container_ref,
+                rectangle_obj_container_ref,
+                output_string_obj_container_ref,
+            ],
+            macro_refs: vec![],
+        }, *object_pool.container_object_by_id(ObjectId::from(3000)).unwrap());
+
+        /*CHECK SOFT KEY*/
+
+        let line_obj_soft_key_ref = ObjectRef {
+            id: ObjectId::from(13000),
+            offset: Point {x: 0, y: 0},
+        };
+
+        assert_eq!(Key {
+            id: ObjectId::from(5000),
+            background_colour: 8,
+            key_code: 1,
+            object_refs: vec![
+                line_obj_soft_key_ref
+            ],
+            macro_refs: vec![],
+        }, *object_pool.key_object_by_id(ObjectId::from(5000)).unwrap());
+
+        /*CHECK BUTTON*/
+
+        let button_options = ButtonOptions {
+            latchable: false,
+            state: ButtonState::RELEASED,
+            suppress_border: false,
+            transparent_background: false,
+            disabled: false,
+            no_border: false,
+        };
+
+        let output_string_obj_button_ref = ObjectRef {
+            id: ObjectId::from(11001),
+            offset: Point {x: -4, y: -6},
+        };
+        
+        assert_eq!(Button {
+            id: ObjectId::from(6000),
+            width: 30,
+            height: 20,
+            background_colour: 8,
+            border_colour: 8,
+            key_code: 1,
+            options: button_options,
+            object_refs: vec![output_string_obj_button_ref],
+            macro_refs: vec![],
+        }, *object_pool.button_object_by_id(ObjectId::from(6000)).unwrap());
+
+        /*CHECK INPUT BOOLEAN*/
+
+        assert_eq!(InputBoolean {
+            id: ObjectId::from(7000),
+            background_colour: 1,
+            width: 10,
+            foreground_colour: ObjectId::from(23000),
+            variable_reference: ObjectId::NULL,
+            value: false,
+            enabled: true,
+            macro_refs: vec![],
+        }, *object_pool.input_boolean_object_by_id(ObjectId::from(7000)).unwrap());
+
+        /*CHECK INPUT STRING*/
+
+        assert_eq!(InputString {
+            id: ObjectId::from(8000),
+            width: 50,
+            height: 15,
+            background_colour: 1,
+            font_attributes: ObjectId::from(23002),
+            input_attributes: ObjectId::NULL,
+            options: InputStringOptions {
+                transparent: false,
+                auto_wrap: true,
+                wrap_on_hyphen: false,
+            },
+            variable_reference: ObjectId::NULL,
+            justification: Alignment {
+                horizontal: HorizontalAlignment::Left,
+                vertical: VerticalAlignment::Top,
+            },
+            value: "abc ".to_string(),
+            enabled: true,
+            macro_refs: vec![],
+        }, *object_pool.input_string_object_by_id(ObjectId::from(8000)).unwrap());
+
+        /*CHECK INPUT NUMBER*/
+
+        assert_eq!(InputNumber {
+            id: ObjectId::from(9000),
+            width: 50,
+            height: 20,
+            background_colour: 1,
+            font_attributes: ObjectId::from(23001),
+            options: InputNumberOption {
+                transparent: false,
+                truncate: false,
+                display_zero_as_blank: false,
+                display_leading_zeros: false,
+            },
+            variable_reference: ObjectId::NULL,
+            value: 123,
+            min_value: 0,
+            max_value: 65535,
+            offset: 0,
+            scale: 1.0,
+            nr_of_decimals: 0,
+            format: FormatType::Decimal,
+            justification: Alignment {
+                horizontal: HorizontalAlignment::Left,
+                vertical: VerticalAlignment::Top,
+            },
+            options2: InputNumberOption2 {
+                enabled: true,
+                real_time_editing: false,
+            },
+            macro_refs: vec![],
+        }, *object_pool.input_number_object_by_id(ObjectId::from(9000)).unwrap());
 
         todo!("continue checking objects of pool of 'resources/test/AgIsoStack-rs-test-pool.iop'")
     }
