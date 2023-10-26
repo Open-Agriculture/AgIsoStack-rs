@@ -5,6 +5,10 @@ impl Object {
         let id = Self::read_u16(data)?.into();
         let object_type = Self::read_u8(data)?.try_into()?;
 
+        if id == ObjectId::from(37000) {
+            println!("Object type: {:?}", object_type);
+        }
+
         match object_type {
             ObjectType::WorkingSet => {
                 let mut o = WorkingSet {
@@ -202,7 +206,7 @@ impl Object {
                     variable_reference: Self::read_u16(data)?.into(),
                     value: Self::read_u8(data)?,
                     list_items: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    options: Self::read_u8(data)?,
+                    options: Self::read_u8(data)?.into(),
                     macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
                 };
 
@@ -220,9 +224,9 @@ impl Object {
                     height: Self::read_u16(data)?,
                     background_colour: Self::read_u8(data)?,
                     font_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?,
+                    options: Self::read_u8(data)?.into(),
                     variable_reference: Self::read_u16(data)?.into(),
-                    justification: Self::read_u8(data)?,
+                    justification: Self::read_u8(data)?.into(),
                     value: Self::read_string(Self::read_u16(data)?.into(), data)?,
                     macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
                 };
@@ -239,14 +243,14 @@ impl Object {
                     height: Self::read_u16(data)?,
                     background_colour: Self::read_u8(data)?,
                     font_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?,
+                    options: Self::read_u8(data)?.into(),
                     variable_reference: Self::read_u16(data)?.into(),
                     value: Self::read_u32(data)?,
                     offset: Self::read_i32(data)?,
                     scale: Self::read_f32(data)?,
                     nr_of_decimals: Self::read_u8(data)?,
-                    format: Self::read_bool(data)?,
-                    justification: Self::read_u8(data)?,
+                    format: Self::read_bool(data)?.into(),
+                    justification: Self::read_u8(data)?.into(),
                     macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
                 };
 
@@ -261,7 +265,7 @@ impl Object {
                     line_attributes: Self::read_u16(data)?.into(),
                     width: Self::read_u16(data)?,
                     height: Self::read_u16(data)?,
-                    line_direction: Self::read_u8(data)?,
+                    line_direction: Self::read_u8(data)?.into(),
                     macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
                 };
 
@@ -624,11 +628,10 @@ impl Object {
                     font_attributes_object: Self::read_u16(data)?.into(),
                     line_attributes_object: Self::read_u16(data)?.into(),
                     fill_attributes_object: Self::read_u16(data)?.into(),
-                    format: Self::read_u8(data)?,
-                    options: Self::read_u8(data)?,
+                    format: Self::read_u8(data)?.into(),
+                    options: Self::read_u8(data)?.into(),
                     transparency_colour: Self::read_u8(data)?,
                 };
-
                 Ok(Object::GraphicsContext(o))
             }
             ObjectType::OutputList => {

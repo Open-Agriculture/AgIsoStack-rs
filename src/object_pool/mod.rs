@@ -3,13 +3,13 @@ pub mod writer;
 
 mod object_pool;
 
+use crate::network_management::name::NAME;
 use bitvec::field::BitField;
 use bitvec::order::{Lsb0, Msb0};
 use bitvec::vec::BitVec;
 use bitvec::view::BitView;
-use strum_macros::FromRepr;
 pub use object_pool::ObjectPool;
-use crate::network_management::name::NAME;
+use strum_macros::FromRepr;
 
 pub enum ParseError {
     DataEmpty,
@@ -222,7 +222,7 @@ impl TryFrom<u8> for VtVersion {
             4 => Ok(VtVersion::Version4),
             5 => Ok(VtVersion::Version5),
             6 => Ok(VtVersion::Version6),
-            _ => Err(ParseError::UnknownObjectType)
+            _ => Err(ParseError::UnknownObjectType),
         }
     }
 }
@@ -445,40 +445,39 @@ pub enum WindowMaskCellFormat {
 }
 
 impl WindowMaskCellFormat {
-
     const fn from_size(x: u8, y: u8) -> WindowMaskCellFormat {
         let size = Point { x, y };
         match size {
-            Point { x: 1, y: 1} => WindowMaskCellFormat::CF1x1,
-            Point { x: 1, y: 2} => WindowMaskCellFormat::CF1x2,
-            Point { x: 1, y: 3} => WindowMaskCellFormat::CF1x3,
-            Point { x: 1, y: 4} => WindowMaskCellFormat::CF1x4,
-            Point { x: 1, y: 5} => WindowMaskCellFormat::CF1x5,
-            Point { x: 1, y: 6} => WindowMaskCellFormat::CF1x6,
-            Point { x: 2, y: 1} => WindowMaskCellFormat::CF2x1,
-            Point { x: 2, y: 2} => WindowMaskCellFormat::CF2x2,
-            Point { x: 2, y: 3} => WindowMaskCellFormat::CF2x3,
-            Point { x: 2, y: 4} => WindowMaskCellFormat::CF2x4,
-            Point { x: 2, y: 5} => WindowMaskCellFormat::CF2x5,
-            Point { x: 2, y: 6} => WindowMaskCellFormat::CF2x6,
-            _ => WindowMaskCellFormat::CF1x1
+            Point { x: 1, y: 1 } => WindowMaskCellFormat::CF1x1,
+            Point { x: 1, y: 2 } => WindowMaskCellFormat::CF1x2,
+            Point { x: 1, y: 3 } => WindowMaskCellFormat::CF1x3,
+            Point { x: 1, y: 4 } => WindowMaskCellFormat::CF1x4,
+            Point { x: 1, y: 5 } => WindowMaskCellFormat::CF1x5,
+            Point { x: 1, y: 6 } => WindowMaskCellFormat::CF1x6,
+            Point { x: 2, y: 1 } => WindowMaskCellFormat::CF2x1,
+            Point { x: 2, y: 2 } => WindowMaskCellFormat::CF2x2,
+            Point { x: 2, y: 3 } => WindowMaskCellFormat::CF2x3,
+            Point { x: 2, y: 4 } => WindowMaskCellFormat::CF2x4,
+            Point { x: 2, y: 5 } => WindowMaskCellFormat::CF2x5,
+            Point { x: 2, y: 6 } => WindowMaskCellFormat::CF2x6,
+            _ => WindowMaskCellFormat::CF1x1,
         }
     }
 
     const fn size(self) -> Point<u8> {
         match self {
-            WindowMaskCellFormat::CF1x1 => Point { x: 1, y: 1},
-            WindowMaskCellFormat::CF1x2 => Point { x: 1, y: 2},
-            WindowMaskCellFormat::CF1x3 => Point { x: 1, y: 3},
-            WindowMaskCellFormat::CF1x4 => Point { x: 1, y: 4},
-            WindowMaskCellFormat::CF1x5 => Point { x: 1, y: 5},
-            WindowMaskCellFormat::CF1x6 => Point { x: 1, y: 6},
-            WindowMaskCellFormat::CF2x1 => Point { x: 2, y: 1},
-            WindowMaskCellFormat::CF2x2 => Point { x: 2, y: 2},
-            WindowMaskCellFormat::CF2x3 => Point { x: 2, y: 3},
-            WindowMaskCellFormat::CF2x4 => Point { x: 2, y: 4},
-            WindowMaskCellFormat::CF2x5 => Point { x: 2, y: 5},
-            WindowMaskCellFormat::CF2x6 => Point { x: 2, y: 6},
+            WindowMaskCellFormat::CF1x1 => Point { x: 1, y: 1 },
+            WindowMaskCellFormat::CF1x2 => Point { x: 1, y: 2 },
+            WindowMaskCellFormat::CF1x3 => Point { x: 1, y: 3 },
+            WindowMaskCellFormat::CF1x4 => Point { x: 1, y: 4 },
+            WindowMaskCellFormat::CF1x5 => Point { x: 1, y: 5 },
+            WindowMaskCellFormat::CF1x6 => Point { x: 1, y: 6 },
+            WindowMaskCellFormat::CF2x1 => Point { x: 2, y: 1 },
+            WindowMaskCellFormat::CF2x2 => Point { x: 2, y: 2 },
+            WindowMaskCellFormat::CF2x3 => Point { x: 2, y: 3 },
+            WindowMaskCellFormat::CF2x4 => Point { x: 2, y: 4 },
+            WindowMaskCellFormat::CF2x5 => Point { x: 2, y: 5 },
+            WindowMaskCellFormat::CF2x6 => Point { x: 2, y: 6 },
         }
     }
 }
@@ -517,7 +516,7 @@ impl From<WindowMaskOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.available);
         bit_data.push(value.transparent);
-        bit_data.extend([0, 0, 0, 0, 0, 0]);
+        bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
 }
@@ -1053,7 +1052,7 @@ impl From<ButtonOptions> for u8 {
         bit_data.push(value.transparent_background);
         bit_data.push(value.disabled);
         bit_data.push(value.no_border);
-        bit_data.extend([0, 0, 0]);
+        bit_data.extend([0; 3]);
         bit_data.load::<u8>()
     }
 }
@@ -1100,10 +1099,7 @@ impl From<u8> for Alignment {
                 bit_data.pop().unwrap(),
                 bit_data.pop().unwrap(),
             ]),
-            vertical: VerticalAlignment::from([
-                bit_data.pop().unwrap(),
-                bit_data.pop().unwrap(),
-            ]),
+            vertical: VerticalAlignment::from([bit_data.pop().unwrap(), bit_data.pop().unwrap()]),
         }
     }
 }
@@ -1129,7 +1125,7 @@ pub enum HorizontalAlignment {
     Left = 0,
     Middle = 1,
     Right = 2,
-    Reserved = 3
+    Reserved = 3,
 }
 
 impl From<[bool; 2]> for HorizontalAlignment {
@@ -1163,7 +1159,7 @@ pub enum VerticalAlignment {
     Top = 0,
     Middle = 1,
     Bottom = 2,
-    Reserved = 3
+    Reserved = 3,
 }
 
 impl From<[bool; 2]> for VerticalAlignment {
@@ -1216,7 +1212,7 @@ impl From<InputStringOptions> for u8 {
         bit_data.push(value.transparent);
         bit_data.push(value.auto_wrap);
         bit_data.push(value.wrap_on_hyphen);
-        bit_data.extend([0, 0, 0, 0, 0]);
+        bit_data.extend([0; 5]);
         bit_data.load::<u8>()
     }
 }
@@ -1228,7 +1224,7 @@ pub struct InputNumber {
     pub height: u16,
     pub background_colour: u8,
     pub font_attributes: ObjectId,
-    pub options: InputNumberOption,
+    pub options: NumberOptions,
     pub variable_reference: ObjectId,
     pub value: u32,
     pub min_value: u32,
@@ -1238,73 +1234,40 @@ pub struct InputNumber {
     pub nr_of_decimals: u8,
     pub format: FormatType,
     pub justification: Alignment,
-    pub options2: InputNumberOption2,
+    pub options2: InputNumberOptions,
     pub macro_refs: Vec<MacroRef>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct InputNumberOption {
-    pub transparent: bool,
-    pub display_leading_zeros: bool,
-    pub display_zero_as_blank: bool,
-    pub truncate: bool
-}
-
-impl From<u8> for InputNumberOption {
-    fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
-        InputNumberOption {
-            transparent: bit_data.pop().unwrap(),
-            display_leading_zeros: bit_data.pop().unwrap(),
-            display_zero_as_blank: bit_data.pop().unwrap(),
-            truncate: bit_data.pop().unwrap(),
-        }
-    }
-}
-
-impl From<InputNumberOption> for u8 {
-    fn from(value: InputNumberOption) -> u8 {
-        let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(value.transparent);
-        bit_data.push(value.display_leading_zeros);
-        bit_data.push(value.display_zero_as_blank);
-        bit_data.push(value.truncate);
-        bit_data.extend([0, 0, 0, 0]);
-        bit_data.load::<u8>()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct InputNumberOption2 {
+pub struct InputNumberOptions {
     pub enabled: bool,
     pub real_time_editing: bool,
 }
 
-impl From<u8> for InputNumberOption2 {
+impl From<u8> for InputNumberOptions {
     fn from(value: u8) -> Self {
         let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
-        InputNumberOption2 {
+        InputNumberOptions {
             enabled: bit_data.pop().unwrap(),
             real_time_editing: bit_data.pop().unwrap(),
         }
     }
 }
 
-impl From<InputNumberOption2> for u8 {
-    fn from(value: InputNumberOption2) -> u8 {
+impl From<InputNumberOptions> for u8 {
+    fn from(value: InputNumberOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.enabled);
         bit_data.push(value.real_time_editing);
-        bit_data.extend([0, 0, 0, 0, 0, 0]);
+        bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FormatType {
     Decimal,
-    Exponential
+    Exponential,
 }
 
 impl From<bool> for FormatType {
@@ -1325,51 +1288,138 @@ impl From<FormatType> for bool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct InputListOptions {
+    pub enabled: bool,
+    pub real_time_editing: bool,
+}
+
+impl From<u8> for InputListOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        InputListOptions {
+            enabled: bit_data.pop().unwrap(),
+            real_time_editing: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl Into<u8> for InputListOptions {
+    fn into(self) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(self.enabled);
+        bit_data.push(self.real_time_editing);
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct InputList {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
     pub variable_reference: ObjectId,
     pub value: u8,
-    pub options: u8,
+    pub options: InputListOptions,
     pub list_items: Vec<ObjectId>,
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct OutputStringOptions {
+    pub transparent: bool,
+    pub auto_wrap: bool,
+    pub wrap_on_hyphen: bool,
+}
+
+impl From<u8> for OutputStringOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        OutputStringOptions {
+            transparent: bit_data.pop().unwrap(),
+            auto_wrap: bit_data.pop().unwrap(),
+            wrap_on_hyphen: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl Into<u8> for OutputStringOptions {
+    fn into(self) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(self.transparent);
+        bit_data.push(self.auto_wrap);
+        bit_data.push(self.wrap_on_hyphen);
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputString {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
     pub font_attributes: ObjectId,
-    pub options: u8,
+    pub options: OutputStringOptions,
     pub variable_reference: ObjectId,
-    pub justification: u8,
+    pub justification: Alignment,
     pub value: String,
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct NumberOptions {
+    pub transparent: bool,
+    pub display_leading_zeros: bool,
+    pub display_zero_as_blank: bool,
+    pub truncate: bool,
+}
+
+impl From<u8> for NumberOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        NumberOptions {
+            transparent: bit_data.pop().unwrap(),
+            display_leading_zeros: bit_data.pop().unwrap(),
+            display_zero_as_blank: bit_data.pop().unwrap(),
+            truncate: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl Into<u8> for NumberOptions {
+    fn into(self) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(self.transparent);
+        bit_data.push(self.display_leading_zeros);
+        bit_data.push(self.display_zero_as_blank);
+        bit_data.push(self.truncate);
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub struct OutputNumber {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
     pub font_attributes: ObjectId,
-    pub options: u8,
+    pub options: NumberOptions,
     pub variable_reference: ObjectId,
     pub value: u32,
     pub offset: i32,
     pub scale: f32,
     pub nr_of_decimals: u8,
-    pub format: bool,
-    pub justification: u8,
+    pub format: FormatType,
+    pub justification: Alignment,
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputList {
     pub id: ObjectId,
     pub width: u16,
@@ -1380,13 +1430,38 @@ pub struct OutputList {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum LineDirection {
+    TopLeftToBottomRight,
+    BottomLeftToTopRight,
+}
+
+impl From<u8> for LineDirection {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => LineDirection::TopLeftToBottomRight,
+            1 => LineDirection::BottomLeftToTopRight,
+            _ => panic!("Invalid line direction"),
+        }
+    }
+}
+
+impl From<LineDirection> for u8 {
+    fn from(value: LineDirection) -> Self {
+        match value {
+            LineDirection::TopLeftToBottomRight => 0,
+            LineDirection::BottomLeftToTopRight => 1,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputLine {
     pub id: ObjectId,
     pub line_attributes: ObjectId,
     pub width: u16,
     pub height: u16,
-    pub line_direction: u8,
+    pub line_direction: LineDirection,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -1609,7 +1684,85 @@ pub struct ColourMap {
     pub colour_map: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ColorFormat {
+    ColorMonochrome,
+    Color4Bit,
+    Color8Bit,
+}
+
+impl From<ColorFormat> for u8 {
+    fn from(value: ColorFormat) -> Self {
+        match value {
+            ColorFormat::ColorMonochrome => 0,
+            ColorFormat::Color4Bit => 1,
+            ColorFormat::Color8Bit => 2,
+        }
+    }
+}
+
+impl From<u8> for ColorFormat {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => ColorFormat::ColorMonochrome,
+            1 => ColorFormat::Color4Bit,
+            2 => ColorFormat::Color8Bit,
+            _ => panic!("Invalid color format: {}", value),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ColorOption {
+    ForegroundBackground,
+    LineFontFill,
+}
+
+impl From<bool> for ColorOption {
+    fn from(value: bool) -> Self {
+        match value {
+            false => ColorOption::ForegroundBackground,
+            true => ColorOption::LineFontFill,
+        }
+    }
+}
+
+impl From<ColorOption> for bool {
+    fn from(value: ColorOption) -> Self {
+        match value {
+            ColorOption::ForegroundBackground => false,
+            ColorOption::LineFontFill => true,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct GraphicsContextOptions {
+    pub transparent: bool,
+    pub color: ColorOption,
+}
+
+impl From<u8> for GraphicsContextOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        GraphicsContextOptions {
+            transparent: bit_data.pop().unwrap(),
+            color: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl Into<u8> for GraphicsContextOptions {
+    fn into(self) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(self.transparent);
+        bit_data.push(self.color.into());
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct GraphicsContext {
     pub id: ObjectId,
     pub viewport_width: u16,
@@ -1626,8 +1779,8 @@ pub struct GraphicsContext {
     pub font_attributes_object: ObjectId,
     pub line_attributes_object: ObjectId,
     pub fill_attributes_object: ObjectId,
-    pub format: u8,
-    pub options: u8,
+    pub format: ColorFormat,
+    pub options: GraphicsContextOptions,
     pub transparency_colour: u8,
 }
 
@@ -1667,7 +1820,7 @@ impl Into<u8> for KeyGroupOptions {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(self.available);
         bit_data.push(self.transparent);
-        bit_data.extend([0, 0, 0, 0, 0, 0]);
+        bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
 }

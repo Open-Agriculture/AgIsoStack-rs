@@ -186,7 +186,7 @@ impl Object {
                 Self::write_i32(&mut data, o.offset);
                 Self::write_f32(&mut data, o.scale);
                 Self::write_u8(&mut data, o.nr_of_decimals);
-                Self::write_u8(&mut data, o.format);
+                Self::write_u8(&mut data, o.format as u8);
                 Self::write_u8(&mut data, o.justification);
                 Self::write_u8(&mut data, o.macro_refs.len() as u8);
 
