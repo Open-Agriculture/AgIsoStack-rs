@@ -2,158 +2,87 @@ use std::io::ErrorKind;
 // Copyright 2023 Raven Industries inc.
 use std::time::Instant;
 
-use pcan_basic::error::PcanError;
 use pcan_basic::bus::DngBus;
 use pcan_basic::bus::IsaBus;
 use pcan_basic::bus::LanBus;
 use pcan_basic::bus::PccBus;
 use pcan_basic::bus::PciBus;
 use pcan_basic::bus::UsbBus;
+use pcan_basic::error::PcanError;
 use pcan_basic::socket::dng::DngCanSocket;
 use pcan_basic::socket::isa::IsaCanSocket;
 use pcan_basic::socket::lan::LanCanSocket;
 use pcan_basic::socket::pcc::PccCanSocket;
 use pcan_basic::socket::pci::PciCanSocket;
 use pcan_basic::socket::usb::UsbCanSocket;
-use pcan_basic::socket::{MessageType, CanFrame, Baudrate as PeakBaudrate, RecvCan, SendCan};
+use pcan_basic::socket::{Baudrate as PeakBaudrate, CanFrame, MessageType, RecvCan, SendCan};
 
 use crate::driver::{
     CanId, Channel, Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError,
     Frame as InternalFrame, Type,
 };
 
-
 impl From<PcanError> for DriverOpenError {
     fn from(e: PcanError) -> DriverOpenError {
         match e {
-            PcanError::RegTest => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Test of the CAN controller hardware registers failed (no hardware found)"
-                    )
-                )
-            },
+            PcanError::RegTest => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Test of the CAN controller hardware registers failed (no hardware found)",
+            )),
             PcanError::NoDriver => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Driver not loaded"
-                    )
-                )
-            },
-            PcanError::HwInUse => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::AddrInUse,
-                    "Hardware already in use by a Net"
-                    )
-                )
-            },
-            PcanError::NetInUse => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::AddrInUse,
-                    "A Client is already connected to the Net"
-                    )
-                )
-            },
-            PcanError::IllHw => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Hardware handle is invalid"
-                    )
-                )
-            },
-            PcanError::IllNet => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Net handle is invalid"
-                    )
-                )
-            },
-            PcanError::IllClient => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Client handle is invalid"
-                    )
-                )
-            },
-            PcanError::Resource => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Resource (FIFO, Client, timeout) cannot be created"
-                    )
-                )
+                DriverOpenError::IoError(std::io::Error::new(ErrorKind::Other, "Driver not loaded"))
             }
+            PcanError::HwInUse => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::AddrInUse,
+                "Hardware already in use by a Net",
+            )),
+            PcanError::NetInUse => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::AddrInUse,
+                "A Client is already connected to the Net",
+            )),
+            PcanError::IllHw => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Hardware handle is invalid",
+            )),
+            PcanError::IllNet => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Net handle is invalid",
+            )),
+            PcanError::IllClient => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Client handle is invalid",
+            )),
+            PcanError::Resource => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Resource (FIFO, Client, timeout) cannot be created",
+            )),
             PcanError::IllParamType => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Invalid parameter"
-                    )
-                )
+                DriverOpenError::IoError(std::io::Error::new(ErrorKind::Other, "Invalid parameter"))
             }
-            PcanError::IllParamVal => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Invalid parameter value"
-                    )
-                )
-            }
+            PcanError::IllParamVal => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Invalid parameter value",
+            )),
             PcanError::Unknown => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Unknown error"
-                    )
-                )
+                DriverOpenError::IoError(std::io::Error::new(ErrorKind::Other, "Unknown error"))
             }
-            PcanError::IllData => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::InvalidData,
-                    "Invalid data, function, or action"
-                    )
-                )
-            }
-            PcanError::IllMode => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Driver object state is wrong for the attempted operation"
-                    )
-                )
-            }
-            PcanError::Initialize => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Channel is not initialized [Value was changed from 0x40000 to 0x4000000]"
-                    )
-                )
-            }
-            PcanError::IllOperation => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                    ErrorKind::Other,
-                    "Invalid operation [Value was changed from 0x80000 to 0x8000000]"
-                    )
-                )
-            },
-            _ => {
-                DriverOpenError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Unknown"
-                    )
-                )
-            }
+            PcanError::IllData => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::InvalidData,
+                "Invalid data, function, or action",
+            )),
+            PcanError::IllMode => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Driver object state is wrong for the attempted operation",
+            )),
+            PcanError::Initialize => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Channel is not initialized [Value was changed from 0x40000 to 0x4000000]",
+            )),
+            PcanError::IllOperation => DriverOpenError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Invalid operation [Value was changed from 0x80000 to 0x8000000]",
+            )),
+            _ => DriverOpenError::IoError(std::io::Error::new(ErrorKind::Other, "Unknown")),
         }
     }
 }
@@ -161,56 +90,26 @@ impl From<PcanError> for DriverOpenError {
 impl From<PcanError> for DriverReadError {
     fn from(e: PcanError) -> DriverReadError {
         match e {
-            PcanError::QrcvEmpty |
-            PcanError::QOverrun => DriverReadError::NoFrameReady,
-            PcanError::Resource => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Resource (FIFO, Client, timeout) cannot be created"
-                    )
-                )
-            }
+            PcanError::QrcvEmpty | PcanError::QOverrun => DriverReadError::NoFrameReady,
+            PcanError::Resource => DriverReadError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Resource (FIFO, Client, timeout) cannot be created",
+            )),
             PcanError::IllParamType => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Invalid parameter"
-                    )
-                )
+                DriverReadError::IoError(std::io::Error::new(ErrorKind::Other, "Invalid parameter"))
             }
-            PcanError::IllParamVal => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Invalid parameter value"
-                    )
-                )
-            }
+            PcanError::IllParamVal => DriverReadError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Invalid parameter value",
+            )),
             PcanError::Unknown => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Unknown error"
-                    )
-                )
+                DriverReadError::IoError(std::io::Error::new(ErrorKind::Other, "Unknown error"))
             }
-            PcanError::IllData => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::InvalidData,
-                        "Invalid data, function, or action"
-                    )
-                )
-            },
-            _ => {
-                DriverReadError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Unknown"
-                    )
-                )
-            }
+            PcanError::IllData => DriverReadError::IoError(std::io::Error::new(
+                ErrorKind::InvalidData,
+                "Invalid data, function, or action",
+            )),
+            _ => DriverReadError::IoError(std::io::Error::new(ErrorKind::Other, "Unknown")),
         }
     }
 }
@@ -219,24 +118,12 @@ impl From<PcanError> for DriverWriteError {
     fn from(e: PcanError) -> DriverWriteError {
         match e {
             PcanError::AnyBusErr => DriverWriteError::BusError(),
-            PcanError::XmtFull |
-            PcanError::QxmtFull => DriverWriteError::NotReady,
-            PcanError::IllOperation => {
-                DriverWriteError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Invalid operation [Value was changed from 0x80000 to 0x8000000]"
-                    )
-                )
-            },
-            _ => {
-                DriverWriteError::IoError(
-                    std::io::Error::new(
-                        ErrorKind::Other,
-                        "Unknown"
-                    )
-                )
-            }
+            PcanError::XmtFull | PcanError::QxmtFull => DriverWriteError::NotReady,
+            PcanError::IllOperation => DriverWriteError::IoError(std::io::Error::new(
+                ErrorKind::Other,
+                "Invalid operation [Value was changed from 0x80000 to 0x8000000]",
+            )),
+            _ => DriverWriteError::IoError(std::io::Error::new(ErrorKind::Other, "Unknown")),
         }
     }
 }
@@ -245,11 +132,15 @@ impl From<&InternalFrame> for CanFrame {
     fn from(f: &InternalFrame) -> CanFrame {
         let msg_type = match f.id.type_() {
             Type::Standard => MessageType::Standard,
-            Type::Extended => MessageType::Extended
+            Type::Extended => MessageType::Extended,
         };
-        CanFrame::new(f.id.raw(), msg_type, &f.data[..f.data_length.min(8) as usize])
-            // guaranteed to not crash, because `f.data` is an [u8; 8]
-            .expect("Can frame had too much data")
+        CanFrame::new(
+            f.id.raw(),
+            msg_type,
+            &f.data[..f.data_length.min(8) as usize],
+        )
+        // guaranteed to not crash, because `f.data` is an [u8; 8]
+        .expect("Can frame had too much data")
     }
 }
 
@@ -296,7 +187,6 @@ impl From<Baudrate> for PeakBaudrate {
     }
 }
 
-
 enum PeakIface {
     Dng(DngBus),
     Isa(IsaBus),
@@ -313,10 +203,7 @@ enum PeakSocket {
     Pcc(PccCanSocket),
     Pci(PciCanSocket),
     Usb(UsbCanSocket),
-
 }
-
-
 
 /// PCan Basic Driver [Driver]
 ///
@@ -329,7 +216,6 @@ pub struct PeakDriver {
 }
 
 impl PeakDriver {
-
     pub fn new_dng(if_bus: DngBus, baudrate: Baudrate) -> Self {
         Self {
             iface: PeakIface::Dng(if_bus),
@@ -423,42 +309,30 @@ impl Driver for PeakDriver {
     }
     fn open(&mut self) -> Result<(), DriverOpenError> {
         self.socket = match &self.iface {
-            PeakIface::Dng(dng) => {
-                Some(PeakSocket::Dng(
-                    DngCanSocket::open(*dng, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            },
-            PeakIface::Isa(isa) => {
-                Some(PeakSocket::Isa(
-                    IsaCanSocket::open(*isa, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            },
-            PeakIface::Lan(lan) => {
-                Some(PeakSocket::Lan(
-                    LanCanSocket::open(*lan, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            },
-            PeakIface::Pcc(pcc) => {
-                Some(PeakSocket::Pcc(
-                    PccCanSocket::open(*pcc, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            },
-            PeakIface::Pci(pci) => {
-                Some(PeakSocket::Pci(
-                    PciCanSocket::open(*pci, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            },
-            PeakIface::Usb(usb) => {
-                Some(PeakSocket::Usb(
-                    UsbCanSocket::open(*usb, PeakBaudrate::from(self.baudrate))?
-                    )
-                )
-            }
+            PeakIface::Dng(dng) => Some(PeakSocket::Dng(DngCanSocket::open(
+                *dng,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
+            PeakIface::Isa(isa) => Some(PeakSocket::Isa(IsaCanSocket::open(
+                *isa,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
+            PeakIface::Lan(lan) => Some(PeakSocket::Lan(LanCanSocket::open(
+                *lan,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
+            PeakIface::Pcc(pcc) => Some(PeakSocket::Pcc(PccCanSocket::open(
+                *pcc,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
+            PeakIface::Pci(pci) => Some(PeakSocket::Pci(PciCanSocket::open(
+                *pci,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
+            PeakIface::Usb(usb) => Some(PeakSocket::Usb(UsbCanSocket::open(
+                *usb,
+                PeakBaudrate::from(self.baudrate),
+            )?)),
         };
         self.opened_timestamp = Instant::now();
 

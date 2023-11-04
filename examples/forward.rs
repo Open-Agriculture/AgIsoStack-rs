@@ -98,9 +98,7 @@ fn main() {
         .map_err(|_err| eprintln!("Unable to set global default subscriber"))
         .unwrap();
 
-    tracing::info!(
-        "AgIsoStack-rs example starts..."
-    );
+    tracing::info!("AgIsoStack-rs example starts...");
 
     tracing::info!(
         "Forwarding CAN traffic from {} to {}",

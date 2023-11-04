@@ -28,7 +28,6 @@ pub use pgn::Pgn;
 pub use self::socketcan::SocketcanDriver;
 
 #[cfg(feature = "peak")]
-pub use self::peak::PeakDriver;
-#[cfg(feature = "peak")]
 pub use self::peak::Baudrate;
-
+#[cfg(feature = "peak")]
+pub use self::peak::PeakDriver;
