@@ -24,8 +24,8 @@ impl Object {
             ObjectType::OutputEllipse => Self::read_output_ellipse(id, data),
             ObjectType::OutputPolygon => Self::read_output_polygon(id, data),
             ObjectType::OutputMeter => Self::read_output_meter(id, data),
-            ObjectType::OutputLinearBarGraph => Self::read_output_linear_bar_graph(data),
-            ObjectType::OutputArchedBarGraph => Self::read_output_arched_bar_graph(data),
+            ObjectType::OutputLinearBarGraph => Self::read_output_linear_bar_graph(id, data),
+            ObjectType::OutputArchedBarGraph => Self::read_output_arched_bar_graph(id, data),
             ObjectType::PictureGraphic => Self::read_picture_graphic(id, data),
             ObjectType::NumberVariable => Self::read_number_variable(id, data),
             ObjectType::StringVariable => Self::read_string_variable(id, data),
@@ -35,27 +35,27 @@ impl Object {
             ObjectType::InputAttributes => Self::read_input_attributes(id, data),
             ObjectType::ObjectPointer => Self::read_object_pointer(id, data),
             ObjectType::Macro => Self::read_macro(id, data),
-            ObjectType::AuxiliaryFunctionType1 => Self::read_auxiliary_function_type1(data),
+            ObjectType::AuxiliaryFunctionType1 => Self::read_auxiliary_function_type1(id, data),
             ObjectType::AuxiliaryInputType1 => Self::read_auxiliary_input_type1(id, data),
-            ObjectType::AuxiliaryFunctionType2 => Self::read_auxiliary_function_type2(data),
+            ObjectType::AuxiliaryFunctionType2 => Self::read_auxiliary_function_type2(id, data),
             ObjectType::AuxiliaryInputType2 => Self::read_auxiliary_input_type2(id, data),
             ObjectType::AuxiliaryControlDesignatorType2 => {
-                Self::read_auxiliary_control_designator_type2(data)
+                Self::read_auxiliary_control_designator_type2(id, data)
             }
             ObjectType::WindowMask => Self::read_window_mask(id, data),
             ObjectType::KeyGroup => Self::read_key_group(id, data),
             ObjectType::GraphicsContext => Self::read_graphics_context(id, data),
             ObjectType::OutputList => Self::read_output_list(id, data),
-            ObjectType::ExtendedInputAttributes => Self::read_extended_input_attributes(data),
+            ObjectType::ExtendedInputAttributes => Self::read_extended_input_attributes(id, data),
             ObjectType::ColourMap => Self::read_colour_map(id, data),
-            ObjectType::ObjectLabelReferenceList => Self::read_object_label_reference_list(data),
-            ObjectType::ExternalObjectDefinition => Self::read_external_object_definition(data),
-            ObjectType::ExternalReferenceName => Self::read_external_reference_name(data),
-            ObjectType::ExternalObjectPointer => Self::read_external_object_pointer(data),
+            ObjectType::ObjectLabelReferenceList => Self::read_object_label_reference_list(id, data),
+            ObjectType::ExternalObjectDefinition => Self::read_external_object_definition(id, data),
+            ObjectType::ExternalReferenceName => Self::read_external_reference_name(id, data),
+            ObjectType::ExternalObjectPointer => Self::read_external_object_pointer(id, data),
             ObjectType::Animation => Self::read_animation(id, data),
             ObjectType::ColourPalette => Self::read_colour_palette(id, data),
             ObjectType::GraphicData => Self::read_graphic_data(id, data),
-            ObjectType::WorkingSetSpecialControls => Self::read_working_set_special_controls(data),
+            ObjectType::WorkingSetSpecialControls => Self::read_working_set_special_controls(id, data),
             ObjectType::ScaledGraphic => Self::read_scaled_graphic(id, data),
         }
     }
@@ -687,7 +687,7 @@ impl Object {
         Ok(Object::OutputMeter(o))
     }
 
-    fn read_output_linear_bar_graph(
+    fn read_output_linear_bar_graph(id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = OutputLinearBarGraph {
@@ -713,7 +713,7 @@ impl Object {
         Ok(Object::OutputLinearBarGraph(o))
     }
 
-    fn read_output_arched_bar_graph(
+    fn read_output_arched_bar_graph(id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = OutputArchedBarGraph {
@@ -884,7 +884,7 @@ impl Object {
         Ok(Object::Macro(o))
     }
 
-    fn read_auxiliary_function_type1(
+    fn read_auxiliary_function_type1(id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType1 {
@@ -918,7 +918,7 @@ impl Object {
         Ok(Object::AuxiliaryInputType1(o))
     }
 
-    fn read_auxiliary_function_type2(
+    fn read_auxiliary_function_type2(id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType2 {
@@ -952,6 +952,7 @@ impl Object {
     }
 
     fn read_auxiliary_control_designator_type2(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let o = AuxiliaryControlDesignatorType2 {
@@ -1062,6 +1063,7 @@ impl Object {
     }
 
     fn read_extended_input_attributes(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let o = ExtendedInputAttributes {
@@ -1089,6 +1091,7 @@ impl Object {
     }
 
     fn read_object_label_reference_list(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = ObjectLabelReferenceList {
@@ -1103,6 +1106,7 @@ impl Object {
     }
 
     fn read_external_object_definition(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = ExternalObjectDefinition {
@@ -1119,6 +1123,7 @@ impl Object {
     }
 
     fn read_external_reference_name(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let o = ExternalReferenceName {
@@ -1131,6 +1136,7 @@ impl Object {
     }
 
     fn read_external_object_pointer(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let o = ExternalObjectPointer {
@@ -1202,6 +1208,7 @@ impl Object {
     }
 
     fn read_working_set_special_controls(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = WorkingSetSpecialControls {
