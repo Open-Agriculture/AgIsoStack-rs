@@ -170,6 +170,41 @@ impl Object {
         Ok(objs)
     }
 
+    fn read_character_ranges(
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Vec<CharacterRange>, ParseError> {
+        let nr_of_character_ranges = Self::read_u8(data)? as usize;
+        let mut character_ranges = Vec::new();
+
+        for _ in 0..nr_of_character_ranges {
+            let character_range = CharacterRange {
+                first_character: Self::read_u16(data)?,
+                last_character: Self::read_u16(data)?,
+            };
+            character_ranges.push(character_range);
+        }
+
+        Ok(character_ranges)
+    }
+
+    fn read_code_planes(data: &mut dyn Iterator<Item = u8>) -> Result<Vec<CodePlane>, ParseError> {
+        let mut code_planes = Vec::new();
+        let nr_of_code_planes = Self::read_u8(data)? as usize;
+
+        for _ in 0..nr_of_code_planes {
+            let number = Self::read_u8(data)?;
+            let character_ranges = Self::read_character_ranges(data)?;
+            let code_plane = CodePlane {
+                number,
+                character_ranges,
+            };
+
+            code_planes.push(code_plane);
+        }
+
+        Ok(code_planes)
+    }
+
     fn read_bool(data: &mut dyn Iterator<Item = u8>) -> Result<bool, ParseError> {
         match data.next() {
             Some(d) => Ok(d != 0),
@@ -1076,8 +1111,8 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let o = ExtendedInputAttributes {
             id,
-            validation_type: Self::read_u8(data)?,
-            nr_of_code_planes: Self::read_u8(data)?,
+            validation_type: Self::read_u8(data)?.into(),
+            code_planes: Self::read_code_planes(data)?,
         };
 
         Ok(Object::ExtendedInputAttributes(o))
