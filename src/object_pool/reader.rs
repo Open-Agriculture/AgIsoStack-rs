@@ -39,7 +39,9 @@ impl Object {
             ObjectType::AuxiliaryInputType1 => Self::read_auxiliary_input_type1(id, data),
             ObjectType::AuxiliaryFunctionType2 => Self::read_auxiliary_function_type2(data),
             ObjectType::AuxiliaryInputType2 => Self::read_auxiliary_input_type2(id, data),
-            ObjectType::AuxiliaryControlDesignatorType2 => Self::read_auxiliary_control_designator_type2(data),
+            ObjectType::AuxiliaryControlDesignatorType2 => {
+                Self::read_auxiliary_control_designator_type2(data)
+            }
             ObjectType::WindowMask => Self::read_window_mask(id, data),
             ObjectType::KeyGroup => Self::read_key_group(id, data),
             ObjectType::GraphicsContext => Self::read_graphics_context(id, data),
@@ -279,7 +281,10 @@ impl Object {
 
     /* READ ISOBUS OBJECTS */
 
-    fn read_working_set(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_working_set(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = WorkingSet {
             id,
             background_colour: Self::read_u8(data)?,
@@ -302,7 +307,10 @@ impl Object {
         Ok(Object::WorkingSet(o))
     }
 
-    fn read_data_mask(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_data_mask(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = DataMask {
             id,
             background_colour: Self::read_u8(data)?,
@@ -319,7 +327,10 @@ impl Object {
         Ok(Object::DataMask(o))
     }
 
-    fn read_alarm_mask(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_alarm_mask(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = AlarmMask {
             id,
             background_colour: Self::read_u8(data)?,
@@ -338,7 +349,10 @@ impl Object {
         Ok(Object::AlarmMask(o))
     }
 
-    fn read_container(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_container(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = Container {
             id,
             width: Self::read_u16(data)?,
@@ -356,7 +370,10 @@ impl Object {
         Ok(Object::Container(o))
     }
 
-    fn read_soft_key_mask(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_soft_key_mask(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = SoftKeyMask {
             id,
             background_colour: Self::read_u8(data)?,
@@ -410,7 +427,10 @@ impl Object {
         Ok(Object::Button(o))
     }
 
-    fn read_input_boolean(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_input_boolean(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = InputBoolean {
             id,
             background_colour: Self::read_u8(data)?,
@@ -428,7 +448,10 @@ impl Object {
         Ok(Object::InputBoolean(o))
     }
 
-    fn read_input_string(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_input_string(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = InputString {
             id,
             width: Self::read_u16(data)?,
@@ -450,7 +473,10 @@ impl Object {
         Ok(Object::InputString(o))
     }
 
-    fn read_input_number(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_input_number(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = InputNumber {
             id,
             width: Self::read_u16(data)?,
@@ -477,7 +503,10 @@ impl Object {
         Ok(Object::InputNumber(o))
     }
 
-    fn read_input_list(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_input_list(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = InputList {
             id,
             width: Self::read_u16(data)?,
@@ -497,7 +526,10 @@ impl Object {
         Ok(Object::InputList(o))
     }
 
-    fn read_output_string(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_string(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputString {
             id,
             width: Self::read_u16(data)?,
@@ -517,7 +549,10 @@ impl Object {
         Ok(Object::OutputString(o))
     }
 
-    fn read_output_number(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_number(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputNumber {
             id,
             width: Self::read_u16(data)?,
@@ -541,7 +576,10 @@ impl Object {
         Ok(Object::OutputNumber(o))
     }
 
-    fn read_output_line(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_line(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputLine {
             id,
             line_attributes: Self::read_u16(data)?.into(),
@@ -557,7 +595,10 @@ impl Object {
         Ok(Object::OutputLine(o))
     }
 
-    fn read_output_rectangle(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_rectangle(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputRectangle {
             id,
             line_attributes: Self::read_u16(data)?.into(),
@@ -574,7 +615,10 @@ impl Object {
         Ok(Object::OutputRectangle(o))
     }
 
-    fn read_output_ellipse(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_ellipse(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputEllipse {
             id,
             line_attributes: Self::read_u16(data)?.into(),
@@ -593,7 +637,10 @@ impl Object {
         Ok(Object::OutputEllipse(o))
     }
 
-    fn read_output_polygon(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_polygon(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputPolygon {
             id,
             width: Self::read_u16(data)?,
@@ -613,7 +660,10 @@ impl Object {
         Ok(Object::OutputPolygon(o))
     }
 
-    fn read_output_meter(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_meter(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputMeter {
             id,
             width: Self::read_u16(data)?,
@@ -691,7 +741,10 @@ impl Object {
         Ok(Object::OutputArchedBarGraph(o))
     }
 
-    fn read_picture_graphic(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_picture_graphic(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = PictureGraphic {
             id,
             width: Self::read_u16(data)?,
@@ -711,7 +764,10 @@ impl Object {
         Ok(Object::PictureGraphic(o))
     }
 
-    fn read_number_variable(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_number_variable(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let o = NumberVariable {
             id,
             value: Self::read_u32(data)?,
@@ -720,7 +776,10 @@ impl Object {
         Ok(Object::NumberVariable(o))
     }
 
-    fn read_string_variable(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_string_variable(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let o = StringVariable {
             id,
             value: Self::read_string(Self::read_u16(data)?.into(), data)?,
@@ -729,7 +788,10 @@ impl Object {
         Ok(Object::StringVariable(o))
     }
 
-    fn read_font_attributes(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_font_attributes(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = FontAttributes {
             id,
             font_colour: Self::read_u8(data)?,
@@ -745,7 +807,10 @@ impl Object {
         Ok(Object::FontAttributes(o))
     }
 
-    fn read_line_attributes(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_line_attributes(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = LineAttributes {
             id,
             line_colour: Self::read_u8(data)?,
@@ -760,7 +825,10 @@ impl Object {
         Ok(Object::LineAttributes(o))
     }
 
-    fn read_fill_attributes(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_fill_attributes(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = FillAttributes {
             id,
             fill_type: Self::read_u8(data)?,
@@ -775,7 +843,10 @@ impl Object {
         Ok(Object::FillAttributes(o))
     }
 
-    fn read_input_attributes(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_input_attributes(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = InputAttributes {
             id,
             validation_type: Self::read_u8(data)?,
@@ -789,7 +860,10 @@ impl Object {
         Ok(Object::InputAttributes(o))
     }
 
-    fn read_object_pointer(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_object_pointer(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let o = ObjectPointer {
             id,
             value: Self::read_u16(data)?.into(),
@@ -826,7 +900,10 @@ impl Object {
         Ok(Object::AuxiliaryFunctionType1(o))
     }
 
-    fn read_auxiliary_input_type1(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_auxiliary_input_type1(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryInputType1 {
             id,
             background_colour: Self::read_u8(data)?,
@@ -857,7 +934,10 @@ impl Object {
         Ok(Object::AuxiliaryFunctionType2(o))
     }
 
-    fn read_auxiliary_input_type2(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_auxiliary_input_type2(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryInputType2 {
             id,
             background_colour: Self::read_u8(data)?,
@@ -883,7 +963,10 @@ impl Object {
         Ok(Object::AuxiliaryControlDesignatorType2(o))
     }
 
-    fn read_window_mask(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_window_mask(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = WindowMask {
             id,
             cell_format: Self::read_u16(data)?.into(),
@@ -908,7 +991,10 @@ impl Object {
         Ok(Object::WindowMask(o))
     }
 
-    fn read_key_group(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_key_group(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = KeyGroup {
             id,
             options: KeyGroupOptions::from(Self::read_u8(data)?),
@@ -926,7 +1012,10 @@ impl Object {
         Ok(Object::KeyGroup(o))
     }
 
-    fn read_graphics_context(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_graphics_context(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let o = GraphicsContext {
             id,
             viewport_width: Self::read_u16(data)?,
@@ -950,7 +1039,10 @@ impl Object {
         Ok(Object::GraphicsContext(o))
     }
 
-    fn read_output_list(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_output_list(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = OutputList {
             id,
             width: Self::read_u16(data)?,
@@ -981,7 +1073,10 @@ impl Object {
         Ok(Object::ExtendedInputAttributes(o))
     }
 
-    fn read_colour_map(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_colour_map(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = ColourMap {
             id,
             colour_map: Vec::with_capacity(Self::read_u16(data)?.into()),
@@ -1048,7 +1143,10 @@ impl Object {
         Ok(Object::ExternalObjectPointer(o))
     }
 
-    fn read_animation(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_animation(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = Animation {
             id,
             width: Self::read_u16(data)?,
@@ -1072,7 +1170,10 @@ impl Object {
         Ok(Object::Animation(o))
     }
 
-    fn read_colour_palette(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_colour_palette(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = ColourPalette {
             id,
             options: Self::read_u16(data)?,
@@ -1085,7 +1186,10 @@ impl Object {
         Ok(Object::ColourPalette(o))
     }
 
-    fn read_graphic_data(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_graphic_data(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = GraphicData {
             id,
             format: Self::read_u8(data)?,
@@ -1115,7 +1219,10 @@ impl Object {
         Ok(Object::WorkingSetSpecialControls(o))
     }
 
-    fn read_scaled_graphic(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+    fn read_scaled_graphic(
+        id: ObjectId,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<Self, ParseError> {
         let mut o = ScaledGraphic {
             id,
             width: Self::read_u16(data)?,
