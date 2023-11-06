@@ -48,14 +48,18 @@ impl Object {
             ObjectType::OutputList => Self::read_output_list(id, data),
             ObjectType::ExtendedInputAttributes => Self::read_extended_input_attributes(id, data),
             ObjectType::ColourMap => Self::read_colour_map(id, data),
-            ObjectType::ObjectLabelReferenceList => Self::read_object_label_reference_list(id, data),
+            ObjectType::ObjectLabelReferenceList => {
+                Self::read_object_label_reference_list(id, data)
+            }
             ObjectType::ExternalObjectDefinition => Self::read_external_object_definition(id, data),
             ObjectType::ExternalReferenceName => Self::read_external_reference_name(id, data),
             ObjectType::ExternalObjectPointer => Self::read_external_object_pointer(id, data),
             ObjectType::Animation => Self::read_animation(id, data),
             ObjectType::ColourPalette => Self::read_colour_palette(id, data),
             ObjectType::GraphicData => Self::read_graphic_data(id, data),
-            ObjectType::WorkingSetSpecialControls => Self::read_working_set_special_controls(id, data),
+            ObjectType::WorkingSetSpecialControls => {
+                Self::read_working_set_special_controls(id, data)
+            }
             ObjectType::ScaledGraphic => Self::read_scaled_graphic(id, data),
         }
     }
@@ -687,7 +691,8 @@ impl Object {
         Ok(Object::OutputMeter(o))
     }
 
-    fn read_output_linear_bar_graph(id: ObjectId,
+    fn read_output_linear_bar_graph(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = OutputLinearBarGraph {
@@ -713,7 +718,8 @@ impl Object {
         Ok(Object::OutputLinearBarGraph(o))
     }
 
-    fn read_output_arched_bar_graph(id: ObjectId,
+    fn read_output_arched_bar_graph(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = OutputArchedBarGraph {
@@ -884,7 +890,8 @@ impl Object {
         Ok(Object::Macro(o))
     }
 
-    fn read_auxiliary_function_type1(id: ObjectId,
+    fn read_auxiliary_function_type1(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType1 {
@@ -918,7 +925,8 @@ impl Object {
         Ok(Object::AuxiliaryInputType1(o))
     }
 
-    fn read_auxiliary_function_type2(id: ObjectId,
+    fn read_auxiliary_function_type2(
+        id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType2 {
