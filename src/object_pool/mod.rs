@@ -402,7 +402,7 @@ pub enum WindowType {
     NumericInputValueWithUnits1x1 = 4,
     NumericInputValueNoUnits1x1 = 5,
     StringInputValue1x1 = 6,
-    HorizontalLinearBargraph1x1 = 7,
+    HorizontalLinearBarGraph1x1 = 7,
     SingleButton1x1 = 8,
     DoubleButton1x1 = 9,
     NumericOutputValueWithUnits2x1 = 10,
@@ -411,7 +411,7 @@ pub enum WindowType {
     NumericInputValueWithUnits2x1 = 13,
     NumericInputValueNoUnits2x1 = 14,
     StringInputValue2x1 = 15,
-    HorizontalLinearBargraph2x1 = 16,
+    HorizontalLinearBarGraph2x1 = 16,
     SingleButton2x1 = 17,
     DoubleButton2x1 = 18,
 }
@@ -1618,12 +1618,48 @@ pub struct InputAttributes {
     pub macro_refs: Vec<MacroRef>,
 }
 
-// TODO; Implement code planes
+#[derive(Debug, Copy, Clone)]
+pub enum ValidationType {
+    ValidCharacters,
+    InvalidCharacters,
+}
+
+impl From<ValidationType> for u8 {
+    fn from(value: ValidationType) -> Self {
+        match value {
+            ValidationType::ValidCharacters => 0,
+            ValidationType::InvalidCharacters => 1,
+        }
+    }
+}
+
+impl From<u8> for ValidationType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => ValidationType::ValidCharacters,
+            1 => ValidationType::InvalidCharacters,
+            _ => panic!("Invalid validation type"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CharacterRange {
+    pub first_character: u16,
+    pub last_character: u16,
+}
+
+#[derive(Debug)]
+pub struct CodePlane {
+    pub number: u8,
+    pub character_ranges: Vec<CharacterRange>,
+}
+
 #[derive(Debug)]
 pub struct ExtendedInputAttributes {
     pub id: ObjectId,
-    pub validation_type: u8,
-    pub nr_of_code_planes: u8,
+    pub validation_type: ValidationType,
+    pub code_planes: Vec<CodePlane>,
 }
 
 #[derive(Debug)]
