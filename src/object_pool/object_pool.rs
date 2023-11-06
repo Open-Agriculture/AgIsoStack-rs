@@ -839,7 +839,7 @@ mod tests {
                 font_attributes_object: ObjectId::NULL,
                 line_attributes_object: ObjectId::NULL,
                 fill_attributes_object: ObjectId::NULL,
-                format: ColorFormat::Color8Bit,
+                format: ColorFormat::ColorMonochrome,
                 options: GraphicsContextOptions {
                     transparent: false,
                     color: ColorOption::ForegroundBackground,
