@@ -1304,11 +1304,11 @@ impl From<u8> for InputListOptions {
     }
 }
 
-impl Into<u8> for InputListOptions {
-    fn into(self) -> u8 {
+impl From<InputListOptions> for u8 {
+    fn from(value: InputListOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(self.enabled);
-        bit_data.push(self.real_time_editing);
+        bit_data.push(value.enabled);
+        bit_data.push(value.real_time_editing);
         bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
@@ -1344,12 +1344,12 @@ impl From<u8> for OutputStringOptions {
     }
 }
 
-impl Into<u8> for OutputStringOptions {
-    fn into(self) -> u8 {
+impl From<OutputStringOptions> for u8 {
+    fn from(value: OutputStringOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(self.transparent);
-        bit_data.push(self.auto_wrap);
-        bit_data.push(self.wrap_on_hyphen);
+        bit_data.push(value.transparent);
+        bit_data.push(value.auto_wrap);
+        bit_data.push(value.wrap_on_hyphen);
         bit_data.extend([0; 5]);
         bit_data.load::<u8>()
     }
@@ -1389,14 +1389,14 @@ impl From<u8> for NumberOptions {
     }
 }
 
-impl Into<u8> for NumberOptions {
-    fn into(self) -> u8 {
+impl From<NumberOptions> for u8 {
+    fn from(value: NumberOptions) -> Self {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(self.transparent);
-        bit_data.push(self.display_leading_zeros);
-        bit_data.push(self.display_zero_as_blank);
-        bit_data.push(self.truncate);
-        bit_data.extend([0; 5]);
+        bit_data.push(value.transparent);
+        bit_data.push(value.display_leading_zeros);
+        bit_data.push(value.display_zero_as_blank);
+        bit_data.push(value.truncate);
+        bit_data.extend([0; 4]);
         bit_data.load::<u8>()
     }
 }
@@ -1752,11 +1752,11 @@ impl From<u8> for GraphicsContextOptions {
     }
 }
 
-impl Into<u8> for GraphicsContextOptions {
-    fn into(self) -> u8 {
+impl From<GraphicsContextOptions> for u8 {
+    fn from(value: GraphicsContextOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(self.transparent);
-        bit_data.push(self.color.into());
+        bit_data.push(value.transparent);
+        bit_data.push(value.color.into());
         bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
@@ -1815,11 +1815,11 @@ impl From<u8> for KeyGroupOptions {
     }
 }
 
-impl Into<u8> for KeyGroupOptions {
-    fn into(self) -> u8 {
+impl From<KeyGroupOptions> for u8 {
+    fn from(value: KeyGroupOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.push(self.available);
-        bit_data.push(self.transparent);
+        bit_data.push(value.available);
+        bit_data.push(value.transparent);
         bit_data.extend([0; 6]);
         bit_data.load::<u8>()
     }
