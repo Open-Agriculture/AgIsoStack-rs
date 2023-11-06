@@ -277,7 +277,7 @@ pub enum Object {
     ColourPalette(ColourPalette),
     GraphicData(GraphicData),
     WorkingSetSpecialControls(WorkingSetSpecialControls),
-    ScaledGraphic(ScalesGraphic),
+    ScaledGraphic(ScaledGraphic),
 }
 
 impl Object {
@@ -1895,7 +1895,7 @@ pub struct GraphicData {
 }
 
 #[derive(Debug)]
-pub struct ScalesGraphic {
+pub struct ScaledGraphic {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,

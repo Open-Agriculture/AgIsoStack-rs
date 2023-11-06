@@ -1,278 +1,332 @@
 use super::*;
 
 impl Object {
+    fn read_working_set(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = WorkingSet {
+            id,
+            background_colour: Self::read_u8(data)?,
+            selectable: Self::read_bool(data)?,
+            active_mask: Self::read_u16(data)?.into(),
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            language_codes: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        for _ in 0..o.language_codes.capacity() {
+            o.language_codes.push(Self::read_string(2, data)?)
+        }
+
+        Ok(Object::WorkingSet(o))
+    }
+
+    fn read_data_mask(data: &mut dyn Iterator<Item = u8>) -> Result<Object, ParseError> {
+        let mut o = DataMask {
+            id,
+            background_colour: Self::read_u8(data)?,
+            soft_key_mask: Self::read_u16(data)?.into(),
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::DataMask(o))
+    }
+
+    fn read_alarm_mask(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = AlarmMask {
+            id,
+            background_colour: Self::read_u8(data)?,
+            soft_key_mask: Self::read_u16(data)?.into(),
+            priority: Self::read_u8(data)?,
+            acoustic_signal: Self::read_u8(data)?,
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::AlarmMask(o))
+    }
+
+    fn read_container(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = Container {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            hidden: Self::read_bool(data)?,
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::Container(o))
+    }
+
+    fn read_soft_key_mask(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = SoftKeyMask {
+            id,
+            background_colour: Self::read_u8(data)?,
+            objects: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.objects
+            .extend(Self::read_objects(data, o.objects.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::SoftKeyMask(o))
+    }
+
+
+
+    fn read_key(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = Key {
+            id,
+            background_colour: Self::read_u8(data)?,
+            key_code: Self::read_u8(data)?,
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::Key(o))
+    }
+
+    fn read_button(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = Button {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            background_colour: Self::read_u8(data)?,
+            border_colour: Self::read_u8(data)?,
+            key_code: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
+            object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.object_refs
+            .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::Button(o))
+    }
+
+    fn read_input_boolean(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = InputBoolean {
+            id,
+            background_colour: Self::read_u8(data)?,
+            width: Self::read_u16(data)?,
+            foreground_colour: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.into(),
+            value: Self::read_bool(data)?,
+            enabled: Self::read_bool(data)?,
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::InputBoolean(o))
+    }
+
+    fn read_input_string(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = InputString {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            background_colour: Self::read_u8(data)?,
+            font_attributes: Self::read_u16(data)?.into(),
+            input_attributes: Self::read_u16(data)?.into(),
+            options: Self::read_u8(data)?.into(),
+            variable_reference: Self::read_u16(data)?.into(),
+            justification: Self::read_u8(data)?.into(),
+            value: Self::read_string(Self::read_u8(data)?.into(), data)?,
+            enabled: Self::read_bool(data)?,
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::InputString(o))
+    }
+
+    fn read_input_number(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = InputNumber {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            background_colour: Self::read_u8(data)?,
+            font_attributes: Self::read_u16(data)?.into(),
+            options: Self::read_u8(data)?.into(),
+            variable_reference: Self::read_u16(data)?.into(),
+            value: Self::read_u32(data)?,
+            min_value: Self::read_u32(data)?,
+            max_value: Self::read_u32(data)?,
+            offset: Self::read_i32(data)?,
+            scale: Self::read_f32(data)?,
+            nr_of_decimals: Self::read_u8(data)?,
+            format: Self::read_bool(data)?.into(),
+            justification: Self::read_u8(data)?.into(),
+            options2: Self::read_u8(data)?.into(),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::InputNumber(o))
+    }
+
+    fn read_input_list(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = InputList {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            variable_reference: Self::read_u16(data)?.into(),
+            value: Self::read_u8(data)?,
+            list_items: Vec::with_capacity(Self::read_u8(data)?.into()),
+            options: Self::read_u8(data)?.into(),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.list_items
+            .extend(Self::read_objects(data, o.list_items.capacity())?);
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::InputList(o))
+    }
+
+    fn read_output_string(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = OutputString {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            background_colour: Self::read_u8(data)?,
+            font_attributes: Self::read_u16(data)?.into(),
+            options: Self::read_u8(data)?.into(),
+            variable_reference: Self::read_u16(data)?.into(),
+            justification: Self::read_u8(data)?.into(),
+            value: Self::read_string(Self::read_u16(data)?.into(), data)?,
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::OutputString(o))
+    }
+
+    fn read_output_number(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = OutputNumber {
+            id,
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            background_colour: Self::read_u8(data)?,
+            font_attributes: Self::read_u16(data)?.into(),
+            options: Self::read_u8(data)?.into(),
+            variable_reference: Self::read_u16(data)?.into(),
+            value: Self::read_u32(data)?,
+            offset: Self::read_i32(data)?,
+            scale: Self::read_f32(data)?,
+            nr_of_decimals: Self::read_u8(data)?,
+            format: Self::read_bool(data)?.into(),
+            justification: Self::read_u8(data)?.into(),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::OutputNumber(o))
+    }
+
+    fn read_output_line(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        let mut o = OutputLine {
+            id,
+            line_attributes: Self::read_u16(data)?.into(),
+            width: Self::read_u16(data)?,
+            height: Self::read_u16(data)?,
+            line_direction: Self::read_u8(data)?.into(),
+            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+        };
+
+        o.macro_refs
+            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+
+        Ok(Object::OutputLine(o))
+    }
+
     pub fn read(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
         let id = Self::read_u16(data)?.into();
         let object_type = Self::read_u8(data)?.try_into()?;
 
-        if id == ObjectId::from(37000) {
-            println!("Object type: {:?}", object_type);
-        }
-
         match object_type {
             ObjectType::WorkingSet => {
-                let mut o = WorkingSet {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    selectable: Self::read_bool(data)?,
-                    active_mask: Self::read_u16(data)?.into(),
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    language_codes: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                for _ in 0..o.language_codes.capacity() {
-                    o.language_codes.push(Self::read_string(2, data)?)
-                }
-
-                Ok(Object::WorkingSet(o))
+                Self::read_working_set(data)
             }
             ObjectType::DataMask => {
-                let mut o = DataMask {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    soft_key_mask: Self::read_u16(data)?.into(),
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::DataMask(o))
+                Self::read_data_mask(data)
             }
             ObjectType::AlarmMask => {
-                let mut o = AlarmMask {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    soft_key_mask: Self::read_u16(data)?.into(),
-                    priority: Self::read_u8(data)?,
-                    acoustic_signal: Self::read_u8(data)?,
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::AlarmMask(o))
+                Self::read_alarm_mask(data)
             }
             ObjectType::Container => {
-                let mut o = Container {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    hidden: Self::read_bool(data)?,
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::Container(o))
+                Self::read_container(data)
             }
             ObjectType::SoftKeyMask => {
-                let mut o = SoftKeyMask {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    objects: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.objects
-                    .extend(Self::read_objects(data, o.objects.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::SoftKeyMask(o))
+                Self::read_soft_key_mask(data)
             }
             ObjectType::Key => {
-                let mut o = Key {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    key_code: Self::read_u8(data)?,
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::Key(o))
+                Self::read_key(data)
             }
             ObjectType::Button => {
-                let mut o = Button {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    background_colour: Self::read_u8(data)?,
-                    border_colour: Self::read_u8(data)?,
-                    key_code: Self::read_u8(data)?,
-                    options: Self::read_u8(data)?.into(),
-                    object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.object_refs
-                    .extend(Self::read_object_refs(data, o.object_refs.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::Button(o))
+                Self::read_button(data)
             }
             ObjectType::InputBoolean => {
-                let mut o = InputBoolean {
-                    id,
-                    background_colour: Self::read_u8(data)?,
-                    width: Self::read_u16(data)?,
-                    foreground_colour: Self::read_u16(data)?.into(),
-                    variable_reference: Self::read_u16(data)?.into(),
-                    value: Self::read_bool(data)?,
-                    enabled: Self::read_bool(data)?,
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::InputBoolean(o))
+                Self::read_input_boolean(data)
             }
             ObjectType::InputString => {
-                let mut o = InputString {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    background_colour: Self::read_u8(data)?,
-                    font_attributes: Self::read_u16(data)?.into(),
-                    input_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?.into(),
-                    variable_reference: Self::read_u16(data)?.into(),
-                    justification: Self::read_u8(data)?.into(),
-                    value: Self::read_string(Self::read_u8(data)?.into(), data)?,
-                    enabled: Self::read_bool(data)?,
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::InputString(o))
+                Self::read_input_string(data)
             }
             ObjectType::InputNumber => {
-                let mut o = InputNumber {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    background_colour: Self::read_u8(data)?,
-                    font_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?.into(),
-                    variable_reference: Self::read_u16(data)?.into(),
-                    value: Self::read_u32(data)?,
-                    min_value: Self::read_u32(data)?,
-                    max_value: Self::read_u32(data)?,
-                    offset: Self::read_i32(data)?,
-                    scale: Self::read_f32(data)?,
-                    nr_of_decimals: Self::read_u8(data)?,
-                    format: Self::read_bool(data)?.into(),
-                    justification: Self::read_u8(data)?.into(),
-                    options2: Self::read_u8(data)?.into(),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::InputNumber(o))
+                Self::read_input_number(data)
             }
             ObjectType::InputList => {
-                let mut o = InputList {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    variable_reference: Self::read_u16(data)?.into(),
-                    value: Self::read_u8(data)?,
-                    list_items: Vec::with_capacity(Self::read_u8(data)?.into()),
-                    options: Self::read_u8(data)?.into(),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.list_items
-                    .extend(Self::read_objects(data, o.list_items.capacity())?);
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::InputList(o))
+                Self::read_input_list(data)
             }
             ObjectType::OutputString => {
-                let mut o = OutputString {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    background_colour: Self::read_u8(data)?,
-                    font_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?.into(),
-                    variable_reference: Self::read_u16(data)?.into(),
-                    justification: Self::read_u8(data)?.into(),
-                    value: Self::read_string(Self::read_u16(data)?.into(), data)?,
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::OutputString(o))
+                Self::read_output_string(data)
             }
             ObjectType::OutputNumber => {
-                let mut o = OutputNumber {
-                    id,
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    background_colour: Self::read_u8(data)?,
-                    font_attributes: Self::read_u16(data)?.into(),
-                    options: Self::read_u8(data)?.into(),
-                    variable_reference: Self::read_u16(data)?.into(),
-                    value: Self::read_u32(data)?,
-                    offset: Self::read_i32(data)?,
-                    scale: Self::read_f32(data)?,
-                    nr_of_decimals: Self::read_u8(data)?,
-                    format: Self::read_bool(data)?.into(),
-                    justification: Self::read_u8(data)?.into(),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::OutputNumber(o))
+                Self::read_output_number(data)
             }
             ObjectType::OutputLine => {
-                let mut o = OutputLine {
-                    id,
-                    line_attributes: Self::read_u16(data)?.into(),
-                    width: Self::read_u16(data)?,
-                    height: Self::read_u16(data)?,
-                    line_direction: Self::read_u8(data)?.into(),
-                    macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
-                };
-
-                o.macro_refs
-                    .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
-
-                Ok(Object::OutputLine(o))
+                Self::read_output_line(data)
             }
             ObjectType::OutputRectangle => {
                 let mut o = OutputRectangle {
@@ -777,7 +831,7 @@ impl Object {
                 Ok(Object::WorkingSetSpecialControls(o))
             }
             ObjectType::ScaledGraphic => {
-                let mut o = ScalesGraphic {
+                let mut o = ScaledGraphic {
                     id,
                     width: Self::read_u16(data)?,
                     height: Self::read_u16(data)?,
