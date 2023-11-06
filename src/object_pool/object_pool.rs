@@ -7,7 +7,7 @@ pub struct ObjectPool {
     objects: Vec<Object>,
     colour_map: [u8; 256],
     colour_palette: [Colour; 256],
-    supported_vt_version: VtVersion,
+    _supported_vt_version: VtVersion,
 
     size_cache: Cell<Option<usize>>,
 }
@@ -24,7 +24,7 @@ impl ObjectPool {
             objects: Vec::new(),
             colour_map,
             colour_palette: Colour::COLOUR_PALETTE,
-            supported_vt_version: VtVersion::default(),
+            _supported_vt_version: VtVersion::default(),
 
             size_cache: Cell::new(None),
         }
