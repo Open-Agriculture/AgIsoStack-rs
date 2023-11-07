@@ -1,6 +1,24 @@
 // Copyright 2023 Raven Industries inc.
 use crate::driver::Frame;
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum Baudrate {
+    Baud1M,
+    Baud800K,
+    Baud500K,
+    Baud250K,
+    Baud125K,
+    Baud100K,
+    Baud95K,
+    Baud83K,
+    Baud50K,
+    Baud47K,
+    Baud33K,
+    Baud20K,
+    Baud10K,
+    Baud5K,
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DriverOpenError {
