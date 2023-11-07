@@ -54,17 +54,22 @@ struct Options {
     /// The interface to read traffic from
     ///
     /// Can be either a string interface name, or an integer interface index
-    #[clap(short, long, default_value_t = String::from("can0"))]
+    #[clap(short = 'i', long, default_value_t = String::from("can0"))]
     pub input_interface: String,
 
     /// The interface to write traffic to
     ///
     /// Can be either a string interface name, or an integer interface index
-    #[clap(short, long, default_value_t = String::from("can1"))]
+    #[clap(short = 'o', long, default_value_t = String::from("can1"))]
     pub output_interface: String,
 
-    #[clap(short, long)]
-    pub driver: CanDriver,
+    /// The driver type to use for the input
+    #[clap(short = 'I', long)]
+    pub input_driver: CanDriver,
+
+    /// The driver type to use for the output
+    #[clap(short = 'O', long)]
+    pub output_driver: CanDriver,
 }
 
 fn create_driver(iface: &str, driver: CanDriver) -> Box<dyn Driver> {
@@ -106,8 +111,8 @@ fn main() {
         opts.output_interface
     );
 
-    let mut input = create_driver(&opts.input_interface, opts.driver.clone());
-    let mut output = create_driver(&opts.output_interface, opts.driver);
+    let mut input = create_driver(&opts.input_interface, opts.input_driver);
+    let mut output = create_driver(&opts.output_interface, opts.output_driver);
 
     input.open().unwrap();
     output.open().unwrap();
