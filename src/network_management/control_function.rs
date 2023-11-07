@@ -12,23 +12,23 @@ use super::network_manager::{MessageQueuePriority, NetworkManager};
 pub enum AddressClaimingState {
     /// Address claiming is uninitialized
     None,
-    /// State machine is waiting for the random delay time                       
+    /// State machine is waiting for the random delay time
     WaitForClaim,
-    /// State machine is sending the request for address claim                
+    /// State machine is sending the request for address claim
     SendRequestForClaim,
-    /// State machine is waiting for the address claim contention period         
+    /// State machine is waiting for the address claim contention period
     WaitForRequestContentionPeriod,
     /// State machine is claiming the preferred address
     SendPreferredAddressClaim,
-    /// State machine is contending the preferred address  
+    /// State machine is contending the preferred address
     ContendForPreferredAddress,
-    /// State machine is claiming an address   
+    /// State machine is claiming an address
     SendArbitraryAddressClaim,
-    /// An ECU requested address claim, inform the bus of our current address    
+    /// An ECU requested address claim, inform the bus of our current address
     SendReclaimAddressOnRequest,
     /// State machine could not claim an address
     UnableToClaim,
-    /// Address claiming is complete and we have an address     
+    /// Address claiming is complete and we have an address
     AddressClaimingComplete,
 }
 
