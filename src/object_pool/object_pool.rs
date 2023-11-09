@@ -37,6 +37,37 @@ impl ObjectPool {
         self.size_cache.get().unwrap_or_default()
     }
 
+    ///
+    /// Loads the binary encoded object pool from a buffer in accordance
+    /// with ISO 11783-6 Annex B (object definitions) and returns the
+    /// parsed [`ObjectPool`].
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - A buffer containing the binary encoded object pool
+    ///
+    /// # Examples
+    /// ```
+    /// use std::fs::File;
+    /// use std::io::Read;
+    /// use std::path::Path;
+    /// use ag_iso_stack::object_pool::ObjectPool;
+    ///
+    /// let example_path = Path::new("C:/project/resources/test/AgIsoStack-rs-test-pool.iop");
+    /// let mut pool_file = match File::open(example_path) {
+    ///             Err(why) => panic!("couldn't open {:?}: {}", example_path.to_str(), why),
+    ///             Ok(file) => file,
+    /// };
+    ///
+    /// let mut buffer = Vec::new();
+    /// match pool_file.read_to_end(&mut buffer) {
+    ///             Ok(size) => size,
+    ///             Err(why) => panic!("Could not read object pool file: {why}"),
+    /// };
+    ///
+    /// let object_pool = ObjectPool::from_iop(buffer);
+    /// ```
+    ///
     pub fn from_iop<I>(data: I) -> Self
     where
         I: IntoIterator<Item = u8>,
@@ -126,7 +157,7 @@ impl ObjectPool {
         }
     }
 
-    pub fn softkey_mask_object_by_id(&self, id: ObjectId) -> Option<&SoftKeyMask> {
+    pub fn soft_key_mask_object_by_id(&self, id: ObjectId) -> Option<&SoftKeyMask> {
         match &self.object_by_id(id) {
             Some(Object::SoftKeyMask(o)) => Some(o),
             _ => None,
@@ -260,8 +291,8 @@ mod tests {
         Box::from(Path::new(&format!(
             "{}/resources/test/AgIsoStack-rs-test-pool.iop",
             match std::env::var("CARGO_MANIFEST_DIR") {
-                Err(why) =>
-                    panic!("could not find environment variable 'CARGO_MANIFEST_DIR': {why}!"),
+                Err(_why) =>
+                    panic!("could not find environment variable 'CARGO_MANIFEST_DIR': {_why}!"),
                 Ok(path) => path,
             }
         )))
@@ -345,12 +376,12 @@ mod tests {
             offset: Point { x: 120, y: 110 },
         };
 
-        let linear_bargraph_obj_dm_ref = ObjectRef {
+        let linear_bar_graph_obj_dm_ref = ObjectRef {
             id: ObjectId::from(18000),
             offset: Point { x: 180, y: 10 },
         };
 
-        let arched_bargraph_obj_dm_ref = ObjectRef {
+        let arched_bar_graph_obj_dm_ref = ObjectRef {
             id: ObjectId::from(19000),
             offset: Point { x: 160, y: 110 },
         };
@@ -424,8 +455,8 @@ mod tests {
                     output_number_obj_dm_ref,
                     output_list_obj_dm_ref,
                     meter_list_obj_dm_ref,
-                    linear_bargraph_obj_dm_ref,
-                    arched_bargraph_obj_dm_ref,
+                    linear_bar_graph_obj_dm_ref,
+                    arched_bar_graph_obj_dm_ref,
                     button_obj_dm_ref,
                     aux_object_pointer_obj_dm_ref,
                     external_object_pointer_obj_dm_ref,
@@ -467,19 +498,19 @@ mod tests {
                 .unwrap()
         );
 
-        /*CHECK SOFTKEY MASK*/
+        /*CHECK SOFT KEY MASK*/
 
-        let softkey_obj_sm_id = ObjectId::from(5000);
+        let soft_key_obj_sm_id = ObjectId::from(5000);
 
         assert_eq!(
             SoftKeyMask {
                 id: ObjectId::from(4000),
                 background_colour: 7,
-                objects: vec![softkey_obj_sm_id],
+                objects: vec![soft_key_obj_sm_id],
                 macro_refs: vec![],
             },
             *object_pool
-                .softkey_mask_object_by_id(ObjectId::from(4000))
+                .soft_key_mask_object_by_id(ObjectId::from(4000))
                 .unwrap()
         );
 
