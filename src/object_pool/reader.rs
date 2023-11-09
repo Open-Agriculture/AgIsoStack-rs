@@ -2,7 +2,7 @@ use super::*;
 
 impl Object {
     pub fn read(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
-        let id = Self::read_u16(data)?.into();
+        let id = Self::read_u16(data)?.try_into()?;
         let object_type = Self::read_u8(data)?.try_into()?;
 
         match object_type {
@@ -72,7 +72,7 @@ impl Object {
     ) -> Result<Vec<ObjectId>, ParseError> {
         let mut objs = Vec::new();
         for _ in 0..nr_of_objects {
-            objs.push(Self::read_u16(data)?.into());
+            objs.push(Self::read_u16(data)?.try_into()?);
         }
         Ok(objs)
     }
@@ -84,7 +84,7 @@ impl Object {
         let mut refs = Vec::new();
         for _ in 0..nr_of_objects {
             refs.push(ObjectRef {
-                id: Self::read_u16(data)?.into(),
+                id: Self::read_u16(data)?.try_into()?,
                 offset: Point {
                     x: Self::read_i16(data)?,
                     y: Self::read_i16(data)?,
@@ -151,10 +151,10 @@ impl Object {
         let mut objs = Vec::new();
         for _ in 0..nr_of_objects {
             objs.push(ObjectLabel {
-                id: Self::read_u16(data)?.into(),
-                string_variable_reference: Self::read_u16(data)?.into(),
+                id: Self::read_u16(data)?.try_into()?,
+                string_variable_reference: Self::read_u16(data)?.try_into()?,
                 font_type: Self::read_u8(data)?,
-                graphic_representation: Self::read_u16(data)?.into(),
+                graphic_representation: Self::read_u16(data)?.try_into()?,
             })
         }
         Ok(objs)
@@ -328,7 +328,7 @@ impl Object {
             id,
             background_colour: Self::read_u8(data)?,
             selectable: Self::read_bool(data)?,
-            active_mask: Self::read_u16(data)?.into(),
+            active_mask: Self::read_u16(data)?.try_into()?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             language_codes: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -353,7 +353,7 @@ impl Object {
         let mut o = DataMask {
             id,
             background_colour: Self::read_u8(data)?,
-            soft_key_mask: Self::read_u16(data)?.into(),
+            soft_key_mask: Self::read_u16(data)?.try_into()?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -373,7 +373,7 @@ impl Object {
         let mut o = AlarmMask {
             id,
             background_colour: Self::read_u8(data)?,
-            soft_key_mask: Self::read_u16(data)?.into(),
+            soft_key_mask: Self::read_u16(data)?.try_into()?,
             priority: Self::read_u8(data)?,
             acoustic_signal: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -474,8 +474,8 @@ impl Object {
             id,
             background_colour: Self::read_u8(data)?,
             width: Self::read_u16(data)?,
-            foreground_colour: Self::read_u16(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
+            foreground_colour: Self::read_u16(data)?.try_into()?,
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_bool(data)?,
             enabled: Self::read_bool(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -496,10 +496,10 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?,
-            font_attributes: Self::read_u16(data)?.into(),
-            input_attributes: Self::read_u16(data)?.into(),
+            font_attributes: Self::read_u16(data)?.try_into()?,
+            input_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             justification: Self::read_u8(data)?.into(),
             value: Self::read_string(Self::read_u8(data)?.into(), data)?,
             enabled: Self::read_bool(data)?,
@@ -521,9 +521,9 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?,
-            font_attributes: Self::read_u16(data)?.into(),
+            font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u32(data)?,
             min_value: Self::read_u32(data)?,
             max_value: Self::read_u32(data)?,
@@ -550,7 +550,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u8(data)?,
             list_items: Vec::with_capacity(Self::read_u8(data)?.into()),
             options: Self::read_u8(data)?.into(),
@@ -574,9 +574,9 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?,
-            font_attributes: Self::read_u16(data)?.into(),
+            font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             justification: Self::read_u8(data)?.into(),
             value: Self::read_string(Self::read_u16(data)?.into(), data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -597,9 +597,9 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?,
-            font_attributes: Self::read_u16(data)?.into(),
+            font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u32(data)?,
             offset: Self::read_i32(data)?,
             scale: Self::read_f32(data)?,
@@ -621,7 +621,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputLine {
             id,
-            line_attributes: Self::read_u16(data)?.into(),
+            line_attributes: Self::read_u16(data)?.try_into()?,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             line_direction: Self::read_u8(data)?.into(),
@@ -640,11 +640,11 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputRectangle {
             id,
-            line_attributes: Self::read_u16(data)?.into(),
+            line_attributes: Self::read_u16(data)?.try_into()?,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             line_suppression: Self::read_u8(data)?,
-            fill_attributes: Self::read_u16(data)?.into(),
+            fill_attributes: Self::read_u16(data)?.try_into()?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -660,13 +660,13 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputEllipse {
             id,
-            line_attributes: Self::read_u16(data)?.into(),
+            line_attributes: Self::read_u16(data)?.try_into()?,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             ellipse_type: Self::read_u8(data)?,
             start_angle: Self::read_u8(data)?,
             end_angle: Self::read_u8(data)?,
-            fill_attributes: Self::read_u16(data)?.into(),
+            fill_attributes: Self::read_u16(data)?.try_into()?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -684,8 +684,8 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            line_attributes: Self::read_u16(data)?.into(),
-            fill_attributes: Self::read_u16(data)?.into(),
+            line_attributes: Self::read_u16(data)?.try_into()?,
+            fill_attributes: Self::read_u16(data)?.try_into()?,
             polygon_type: Self::read_u8(data)?,
             points: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -715,7 +715,7 @@ impl Object {
             end_angle: Self::read_u8(data)?,
             min_value: Self::read_u16(data)?,
             max_value: Self::read_u16(data)?,
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u16(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -740,9 +740,9 @@ impl Object {
             nr_of_ticks: Self::read_u8(data)?,
             min_value: Self::read_u16(data)?,
             max_value: Self::read_u16(data)?,
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u16(data)?,
-            target_value_variable_reference: Self::read_u16(data)?.into(),
+            target_value_variable_reference: Self::read_u16(data)?.try_into()?,
             target_value: Self::read_u16(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -769,9 +769,9 @@ impl Object {
             bar_graph_width: Self::read_u16(data)?,
             min_value: Self::read_u16(data)?,
             max_value: Self::read_u16(data)?,
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u16(data)?,
-            target_value_variable_reference: Self::read_u16(data)?.into(),
+            target_value_variable_reference: Self::read_u16(data)?.try_into()?,
             target_value: Self::read_u16(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -874,7 +874,7 @@ impl Object {
             id,
             fill_type: Self::read_u8(data)?,
             fill_colour: Self::read_u8(data)?,
-            fill_pattern: Self::read_u16(data)?.into(),
+            fill_pattern: Self::read_u16(data)?.try_into()?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -907,7 +907,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let o = ObjectPointer {
             id,
-            value: Self::read_u16(data)?.into(),
+            value: Self::read_u16(data)?.try_into()?,
         };
 
         Ok(Object::ObjectPointer(o))
@@ -1001,7 +1001,7 @@ impl Object {
         let o = AuxiliaryControlDesignatorType2 {
             id,
             pointer_type: Self::read_u8(data)?,
-            auxiliary_object_id: Self::read_u16(data)?.into(),
+            auxiliary_object_id: Self::read_u16(data)?.try_into()?,
         };
 
         Ok(Object::AuxiliaryControlDesignatorType2(o))
@@ -1017,9 +1017,9 @@ impl Object {
             window_type: Self::read_u8(data)?.into(),
             background_colour: Self::read_u8(data)?,
             options: Self::read_u8(data)?.into(),
-            name: Self::read_u16(data)?.into(),
-            window_title: Self::read_u16(data)?.into(),
-            window_icon: Self::read_u16(data)?.into(),
+            name: Self::read_u16(data)?.try_into()?,
+            window_title: Self::read_u16(data)?.try_into()?,
+            window_icon: Self::read_u16(data)?.try_into()?,
             objects: Vec::with_capacity(Self::read_u8(data)?.into()),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -1042,8 +1042,8 @@ impl Object {
         let mut o = KeyGroup {
             id,
             options: KeyGroupOptions::from(Self::read_u8(data)?),
-            name: Self::read_u16(data)?.into(),
-            key_group_icon: Self::read_u16(data)?.into(),
+            name: Self::read_u16(data)?.try_into()?,
+            key_group_icon: Self::read_u16(data)?.try_into()?,
             objects: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -1073,9 +1073,9 @@ impl Object {
             graphics_cursor_y: Self::read_i16(data)?,
             foreground_colour: Self::read_u8(data)?,
             background_colour: Self::read_u8(data)?,
-            font_attributes_object: Self::read_u16(data)?.into(),
-            line_attributes_object: Self::read_u16(data)?.into(),
-            fill_attributes_object: Self::read_u16(data)?.into(),
+            font_attributes_object: Self::read_u16(data)?.try_into()?,
+            line_attributes_object: Self::read_u16(data)?.try_into()?,
+            fill_attributes_object: Self::read_u16(data)?.try_into()?,
             format: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
             transparency_colour: Self::read_u8(data)?,
@@ -1091,7 +1091,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            variable_reference: Self::read_u16(data)?.into(),
+            variable_reference: Self::read_u16(data)?.try_into()?,
             value: Self::read_u8(data)?,
             list_items: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -1184,9 +1184,9 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let o = ExternalObjectPointer {
             id,
-            default_object_id: Self::read_u16(data)?.into(),
-            external_reference_name_id: Self::read_u16(data)?.into(),
-            external_object_id: Self::read_u16(data)?.into(),
+            default_object_id: Self::read_u16(data)?.try_into()?,
+            external_reference_name_id: Self::read_u16(data)?.try_into()?,
+            external_object_id: Self::read_u16(data)?.try_into()?,
         };
 
         Ok(Object::ExternalObjectPointer(o))
@@ -1256,8 +1256,8 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = WorkingSetSpecialControls {
             id,
-            id_of_colour_map: Self::read_u16(data)?.into(),
-            id_of_colour_palette: Self::read_u16(data)?.into(),
+            id_of_colour_map: Self::read_u16(data)?.try_into()?,
+            id_of_colour_palette: Self::read_u16(data)?.try_into()?,
             language_pairs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -1287,5 +1287,54 @@ impl Object {
             .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
 
         Ok(Object::ScaledGraphic(o))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::object_pool::Object;
+    use crate::object_pool::WorkingSet;
+
+    #[test]
+    fn read_working_set_test() {
+        let mut data: Vec<u8> = vec![
+            0x00, 0x00, //Object ID
+            0x00, //Type
+            0x00, //Background colour
+            0x00, //Selectable
+            0x00, 0x00, //Active mask
+            0x00, //Number of object references
+            0x00, //Number of macro references
+            0x00, //Number of language codes
+            0x00, 0x00, // Object ID reference 1
+            0x00, 0x00, // X Location reference 1
+            0x00, 0x00, // Y Location reference 1
+            0x00, 0x00, // Object ID reference 2
+            0x00, 0x00, // X Location reference 2
+            0x00, 0x00, // Y Location reference 2
+            0x00, // Event ID reference 1
+            0x00, // Macro ID reference 1
+            0x00, // Event ID reference 2
+            0x00, // Macro ID reference 2
+            0x00, 0x00, // Language code 1
+            0x00, 0x00, // Language code 2
+        ];
+
+        let id = Object::read_u16(&mut data)?.into();
+        let object_type = Object::read_u8(&mut data)?.try_into()?;
+
+        let working_set_exp = WorkingSet {
+            id,
+            background_colour: 0,
+            selectable: false,
+            active_mask: Default::default(),
+            object_refs: vec![],
+            macro_refs: vec![],
+            language_codes: vec![],
+        };
+
+        let working_set_act = Object::read_working_set(id, &mut data).unwrap();
+
+        assert_eq!(, working_set_exp);
     }
 }

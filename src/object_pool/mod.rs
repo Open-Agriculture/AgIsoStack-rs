@@ -525,15 +525,24 @@ impl From<WindowMaskOptions> for u8 {
 pub struct ObjectId(u16);
 impl ObjectId {
     pub const NULL: ObjectId = ObjectId(0xFFFF);
+    pub fn new(id: u16) -> Result<Self, ParseError> {
+        if id > 0x0000 && id < 0xFFFF {
+            return Ok(ObjectId(id));
+        }
+
+        Err(ParseError::UnknownObjectType)
+    }
 }
 impl Default for ObjectId {
     fn default() -> Self {
         Self::NULL
     }
 }
-impl From<u16> for ObjectId {
-    fn from(val: u16) -> Self {
-        ObjectId(val)
+impl TryFrom<u16> for ObjectId {
+    type Error = ParseError;
+
+    fn try_from(val: u16) -> Result<Self, Self::Error> {
+        ObjectId::new(val)
     }
 }
 impl From<ObjectId> for u16 {
@@ -541,9 +550,11 @@ impl From<ObjectId> for u16 {
         val.0
     }
 }
-impl From<[u8; 2]> for ObjectId {
-    fn from(val: [u8; 2]) -> Self {
-        ObjectId(u16::from_le_bytes(val))
+impl TryFrom<[u8; 2]> for ObjectId {
+    type Error = ParseError;
+
+    fn try_from(val: [u8; 2]) -> Result<Self, Self::Error> {
+        ObjectId::new(u16::from_le_bytes(val))
     }
 }
 impl From<ObjectId> for [u8; 2] {
@@ -563,11 +574,13 @@ impl From<ObjectId> for [u8; 2] {
 //         val.to_vec()
 //     }
 // }
-impl From<&[u8]> for ObjectId {
-    fn from(val: &[u8]) -> Self {
+impl TryFrom<&[u8]> for ObjectId {
+    type Error = ParseError;
+
+    fn try_from(val: &[u8]) -> Result<Self, Self::Error> {
         match val.len() {
-            2.. => ObjectId(u16::from_le_bytes([val[0], val[1]])),
-            _ => ObjectId::NULL,
+            2.. => ObjectId::new(u16::from_le_bytes([val[0], val[1]])),
+            _ => Err(ParseError::DataEmpty),
         }
     }
 }
