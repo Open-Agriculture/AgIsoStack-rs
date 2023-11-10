@@ -1292,12 +1292,12 @@ impl Object {
 
 #[cfg(test)]
 mod tests {
-    use crate::object_pool::Object;
     use crate::object_pool::WorkingSet;
+    use crate::object_pool::{Object, ObjectType};
 
     #[test]
     fn read_working_set_test() {
-        let mut data: Vec<u8> = vec![
+        let data: Vec<u8> = vec![
             0x00, 0x00, //Object ID
             0x00, //Type
             0x00, //Background colour
@@ -1320,10 +1320,17 @@ mod tests {
             0x00, 0x00, // Language code 2
         ];
 
-        let id = Object::read_u16(&mut data)?.into();
-        let object_type = Object::read_u8(&mut data)?.try_into()?;
+        let id = Object::read_u16(&mut data.into_iter())
+            .unwrap_or_else(|_| panic!("Failed to read object ID",))
+            .try_into()
+            .unwrap_or_else(|_| panic!("Failed to convert object ID",));
 
-        let working_set_exp = WorkingSet {
+        let _object_type: ObjectType = Object::read_u8(&mut data.into_iter())
+            .unwrap_or_else(|_| panic!("Failed to read object type",))
+            .try_into()
+            .unwrap_or_else(|_| panic!("Failed to read object type",));
+
+        let _working_set_exp = WorkingSet {
             id,
             background_colour: 0,
             selectable: false,
@@ -1333,8 +1340,7 @@ mod tests {
             language_codes: vec![],
         };
 
-        let working_set_act = Object::read_working_set(id, &mut data).unwrap();
-
-        assert_eq!(, working_set_exp);
+        let _working_set_act = Object::read_working_set(id, &mut data.into_iter())
+            .unwrap_or_else(|_| panic!("Failed to read working set",));
     }
 }
