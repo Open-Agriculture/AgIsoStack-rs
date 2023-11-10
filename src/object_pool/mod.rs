@@ -16,7 +16,7 @@ pub enum ParseError {
     UnknownObjectType,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ObjectType {
     WorkingSet = 0,
     DataMask = 1,
