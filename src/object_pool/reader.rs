@@ -207,7 +207,13 @@ impl Object {
 
     fn read_bool(data: &mut dyn Iterator<Item = u8>) -> Result<bool, ParseError> {
         match data.next() {
-            Some(d) => Ok(d != 0),
+            Some(d) => {
+                if d == 0 | 1 {
+                    Ok(d == 1)
+                } else {
+                    Err(ParseError::UnknownObjectType)
+                }
+            },
             None => Err(ParseError::DataEmpty),
         }
     }
