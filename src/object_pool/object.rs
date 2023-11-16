@@ -247,15 +247,15 @@ pub struct Button {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ButtonState {
-    RELEASED,
-    LATCHED,
+    Released,
+    Latched,
 }
 
 impl From<ButtonState> for bool {
     fn from(value: ButtonState) -> Self {
         match value {
-            ButtonState::RELEASED => false,
-            ButtonState::LATCHED => true,
+            ButtonState::Released => false,
+            ButtonState::Latched => true,
         }
     }
 }
@@ -263,8 +263,8 @@ impl From<ButtonState> for bool {
 impl From<bool> for ButtonState {
     fn from(value: bool) -> Self {
         match value {
-            false => ButtonState::RELEASED,
-            true => ButtonState::LATCHED,
+            false => ButtonState::Released,
+            true => ButtonState::Latched,
         }
     }
 }
