@@ -318,6 +318,6 @@ mod tests {
             Err(why) => panic!("Could not read object pool file: {why}"),
         };
 
-        let object_pool = ObjectPool::from_iop(buffer);
+        let _object_pool = ObjectPool::from_iop(buffer);
     }
 }

@@ -1347,7 +1347,7 @@ mod tests {
 
         let mut pool = ObjectPool::new();
         pool.add(
-            Object::read_working_set(id, &mut data.into_iter())
+            Object::read_working_set(id, &mut data)
                 .unwrap_or_else(|why| panic!("Failed to read working set: {:?}", why)),
         );
 
