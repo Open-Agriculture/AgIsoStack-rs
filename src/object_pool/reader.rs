@@ -1341,15 +1341,15 @@ mod tests {
             0xF0, //Background colour
             0x01, //Selectable
             0x00, 0x00, //Active mask
-            0x00, //Number of object references
+            0x02, //Number of object references
             0x00, //Number of macro references
             0x00, //Number of language codes
-            0x00, 0xF1, // Object ID reference 1
-            0x00, 0x7B, // X Location reference 1
-            0x01, 0xC8, // Y Location reference 1
-            0x00, 0xF2, // Object ID reference 2
-            0x03, 0x15, // X Location reference 2
-            0x00, 0x0C, // Y Location reference 2
+            0xF1, 0x00, // Object ID reference 1
+            0x7B, 0x00, // X Location reference 1
+            0xC8, 0x01, // Y Location reference 1
+            0xF2, 0x00, // Object ID reference 2
+            0x15, 0x03, // X Location reference 2
+            0x0C, 0x00, // Y Location reference 2
             0x00, // Event ID reference 1
             0x00, // Macro ID reference 1
             0x00, // Event ID reference 2
