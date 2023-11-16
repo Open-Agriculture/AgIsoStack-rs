@@ -1,10 +1,12 @@
 use crate::object_pool::colour::Colour;
-use crate::object_pool::{
+use crate::object_pool::object::{
     AlarmMask, Button, Container, DataMask, GraphicsContext, InputBoolean, InputList, InputNumber,
-    InputString, Key, KeyGroup, LineAttributes, Object, ObjectId, ObjectType, OutputLine,
-    OutputList, OutputNumber, OutputString, PictureGraphic, SoftKeyMask, VtVersion, WindowMask,
-    WorkingSet,
+    InputString, Key, KeyGroup, LineAttributes, Object, OutputLine, OutputList, OutputNumber,
+    OutputString, PictureGraphic, SoftKeyMask, WindowMask, WorkingSet,
 };
+use crate::object_pool::object_id::ObjectId;
+use crate::object_pool::vt_version::VtVersion;
+use crate::object_pool::ObjectType;
 use core::cell::Cell;
 
 #[derive(Debug)]
