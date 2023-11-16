@@ -1,4 +1,5 @@
 use super::*;
+use crate::object_pool::colour::Colour;
 
 impl Object {
     pub fn write(&self) -> Vec<u8> {
