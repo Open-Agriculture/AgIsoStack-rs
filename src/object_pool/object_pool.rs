@@ -1,6 +1,11 @@
+use crate::object_pool::colour::Colour;
+use crate::object_pool::{
+    AlarmMask, Button, Container, DataMask, GraphicsContext, InputBoolean, InputList, InputNumber,
+    InputString, Key, KeyGroup, LineAttributes, Object, ObjectId, ObjectType, OutputLine,
+    OutputList, OutputNumber, OutputString, PictureGraphic, SoftKeyMask, VtVersion, WindowMask,
+    WorkingSet,
+};
 use core::cell::Cell;
-
-use super::*;
 
 #[derive(Debug)]
 pub struct ObjectPool {

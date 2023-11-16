@@ -1,4 +1,5 @@
 use super::*;
+use crate::object_pool::colour::Colour;
 
 impl Object {
     pub fn read(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
@@ -135,12 +136,12 @@ impl Object {
     ) -> Result<Vec<Colour>, ParseError> {
         let mut objs = Vec::new();
         for _ in 0..nr_of_colours {
-            objs.push(Colour {
-                b: Self::read_u8(data)?,
-                g: Self::read_u8(data)?,
-                r: Self::read_u8(data)?,
-                a: Self::read_u8(data)?,
-            })
+            let b = Self::read_u8(data)?;
+            let g = Self::read_u8(data)?;
+            let r = Self::read_u8(data)?;
+            let a = Self::read_u8(data)?;
+
+            objs.push(Colour::new_by_rgba(r, g, b, a))
         }
         Ok(objs)
     }
@@ -211,9 +212,9 @@ impl Object {
                 if d == 0 || d == 1 {
                     Ok(d == 1)
                 } else {
-                    Err(ParseError::UnknownObjectType)
+                    Err(UnknownObjectType)
                 }
-            },
+            }
             None => Err(ParseError::DataEmpty),
         }
     }
@@ -332,7 +333,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = WorkingSet {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             selectable: Self::read_bool(data)?,
             active_mask: Self::read_u16(data)?.try_into()?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
