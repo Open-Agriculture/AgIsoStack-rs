@@ -528,32 +528,82 @@ impl From<WindowMaskOptions> for u8 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ObjectId(u16);
-impl ObjectId {
-    pub const NULL: ObjectId = ObjectId(0xFFFF);
-    pub fn new(id: u16) -> Result<Self, ParseError> {
-        if id > 0x0000 && id < 0xFFFF {
-            return Ok(ObjectId(id));
-        }
+pub struct ObjectId {
+    id: u16,
+}
 
-        Err(ParseError::UnknownObjectType)
+impl ObjectId {
+    const NULL: ObjectId = ObjectId { id: u16::MAX };
+
+    pub fn new(id: u16) -> Result<Self, ParseError> {
+        if id == Self::NULL.id {
+            Err(UnknownObjectType)
+        } else {
+            Ok(ObjectId { id })
+        }
     }
 }
+
+pub struct NullableObjectId(Option<ObjectId>);
+
+impl NullableObjectId {
+    pub const NULL: NullableObjectId = NullableObjectId(None);
+    pub fn new(id: u16) -> Self {
+        if id == ObjectId::NULL.id {
+            NullableObjectId(None)
+        } else {
+            NullableObjectId(Some(ObjectId::new(id).unwrap()))
+        }
+    }
+}
+
+impl Default for NullableObjectId {
+    fn default() -> Self {
+        NullableObjectId::NULL
+    }
+}
+
+impl From<u16> for NullableObjectId {
+    fn from(id: u16) -> Self {
+        NullableObjectId::new(id)
+    }
+}
+
+impl From<NullableObjectId> for u16 {
+    fn from(id: NullableObjectId) -> Self {
+        match id.0 {
+            Some(id) => id.id,
+            None => u16::from(ObjectId::NULL),
+        }
+    }
+}
+
+impl From<ObjectId> for NullableObjectId {
+    fn from(id: ObjectId) -> Self {
+        if id == ObjectId::NULL {
+            NullableObjectId(None)
+        } else {
+            NullableObjectId(Some(id))
+        }
+    }
+}
+
 impl Default for ObjectId {
     fn default() -> Self {
-        Self::NULL
+        Self::new(0).unwrap()
     }
 }
 impl TryFrom<u16> for ObjectId {
     type Error = ParseError;
 
-    fn try_from(val: u16) -> Result<Self, Self::Error> {
-        ObjectId::new(val)
+    fn try_from(id: u16) -> Result<Self, Self::Error> {
+        ObjectId::new(id)
     }
 }
+
 impl From<ObjectId> for u16 {
     fn from(val: ObjectId) -> Self {
-        val.0
+        val.id
     }
 }
 impl TryFrom<[u8; 2]> for ObjectId {
@@ -565,7 +615,7 @@ impl TryFrom<[u8; 2]> for ObjectId {
 }
 impl From<ObjectId> for [u8; 2] {
     fn from(val: ObjectId) -> Self {
-        val.0.to_le_bytes()
+        val.id.to_le_bytes()
     }
 }
 // impl From<Vec<u8>> for ObjectId {
@@ -585,7 +635,7 @@ impl TryFrom<&[u8]> for ObjectId {
 
     fn try_from(val: &[u8]) -> Result<Self, Self::Error> {
         match val.len() {
-            2.. => ObjectId::new(u16::from_le_bytes([val[0], val[1]])),
+            2.. => Ok(ObjectId::new(u16::from_le_bytes([val[0], val[1]]))?),
             _ => Err(ParseError::DataEmpty),
         }
     }
@@ -633,7 +683,7 @@ pub struct ObjectLabel {
 #[derive(Debug, PartialEq)]
 pub struct WorkingSet {
     pub id: ObjectId,
-    pub background_colour: u8,
+    pub background_colour: Colour,
     pub selectable: bool,
     pub active_mask: ObjectId,
     pub object_refs: Vec<ObjectRef>,
