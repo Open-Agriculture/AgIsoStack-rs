@@ -1,17 +1,6 @@
 use super::*;
 use crate::object_pool::colour::Colour;
-use crate::object_pool::object::{
-    AlarmMask, Animation, AuxiliaryControlDesignatorType2, AuxiliaryFunctionType1,
-    AuxiliaryFunctionType2, AuxiliaryInputType1, AuxiliaryInputType2, Button, CharacterRange,
-    CodePlane, ColourMap, ColourPalette, Container, DataMask, ExtendedInputAttributes,
-    ExternalObjectDefinition, ExternalObjectPointer, ExternalReferenceName, FillAttributes,
-    FontAttributes, GraphicData, GraphicsContext, InputAttributes, InputBoolean, InputList,
-    InputNumber, InputString, Key, KeyGroup, KeyGroupOptions, LineAttributes, Macro,
-    NumberVariable, Object, ObjectLabelReferenceList, ObjectPointer, OutputArchedBarGraph,
-    OutputEllipse, OutputLine, OutputLinearBarGraph, OutputList, OutputMeter, OutputNumber,
-    OutputPolygon, OutputRectangle, OutputString, PictureGraphic, ScaledGraphic, SoftKeyMask,
-    StringVariable, WindowMask, WorkingSet, WorkingSetSpecialControls,
-};
+use crate::object_pool::object::*;
 use crate::object_pool::object_attributes::{MacroRef, ObjectLabel, ObjectRef, Point};
 use crate::object_pool::object_id::ObjectId;
 
@@ -1062,7 +1051,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = KeyGroup {
             id,
-            options: KeyGroupOptions::from(Self::read_u8(data)?),
+            options: Self::read_u8(data)?.into(),
             name: Self::read_u16(data)?.try_into()?,
             key_group_icon: Self::read_u16(data)?.try_into()?,
             objects: Vec::with_capacity(Self::read_u8(data)?.into()),

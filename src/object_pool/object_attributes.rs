@@ -1,6 +1,6 @@
 use crate::object_pool::object_id::ObjectId;
 use bitvec::field::BitField;
-use bitvec::order::Msb0;
+use bitvec::order::{Lsb0, Msb0};
 use bitvec::vec::BitVec;
 use bitvec::view::BitView;
 use strum_macros::FromRepr;
@@ -171,4 +171,464 @@ pub struct ObjectLabel {
     pub string_variable_reference: ObjectId,
     pub font_type: u8,
     pub graphic_representation: ObjectId,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct ButtonOptions {
+    pub latchable: bool,
+    pub state: ButtonState,
+    pub suppress_border: bool,
+    pub transparent_background: bool,
+    pub disabled: bool,
+    pub no_border: bool,
+}
+
+impl From<u8> for ButtonOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        ButtonOptions {
+            latchable: bit_data.pop().unwrap(),
+            state: bit_data.pop().unwrap().into(),
+            suppress_border: bit_data.pop().unwrap(),
+            transparent_background: bit_data.pop().unwrap(),
+            disabled: bit_data.pop().unwrap(),
+            no_border: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<ButtonOptions> for u8 {
+    fn from(value: ButtonOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.latchable);
+        bit_data.push(value.state.into());
+        bit_data.push(value.suppress_border);
+        bit_data.push(value.transparent_background);
+        bit_data.push(value.disabled);
+        bit_data.push(value.no_border);
+        bit_data.extend([0; 3]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ButtonState {
+    Released,
+    Latched,
+}
+
+impl From<ButtonState> for bool {
+    fn from(value: ButtonState) -> Self {
+        match value {
+            ButtonState::Released => false,
+            ButtonState::Latched => true,
+        }
+    }
+}
+
+impl From<bool> for ButtonState {
+    fn from(value: bool) -> Self {
+        match value {
+            false => ButtonState::Released,
+            true => ButtonState::Latched,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct InputStringOptions {
+    pub transparent: bool,
+    pub auto_wrap: bool,
+    pub wrap_on_hyphen: bool,
+}
+
+impl From<u8> for InputStringOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        InputStringOptions {
+            transparent: bit_data.pop().unwrap(),
+            auto_wrap: bit_data.pop().unwrap(),
+            wrap_on_hyphen: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<InputStringOptions> for u8 {
+    fn from(value: InputStringOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.transparent);
+        bit_data.push(value.auto_wrap);
+        bit_data.push(value.wrap_on_hyphen);
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Alignment {
+    pub horizontal: HorizontalAlignment,
+    pub vertical: VerticalAlignment,
+}
+
+impl From<u8> for Alignment {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        Alignment {
+            horizontal: HorizontalAlignment::from([
+                bit_data.pop().unwrap(),
+                bit_data.pop().unwrap(),
+            ]),
+            vertical: VerticalAlignment::from([bit_data.pop().unwrap(), bit_data.pop().unwrap()]),
+        }
+    }
+}
+
+impl From<Alignment> for u8 {
+    fn from(value: Alignment) -> Self {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        let horizontal_align: [bool; 2] = value.horizontal.into();
+        let vertical_align: [bool; 2] = value.vertical.into();
+
+        bit_data.push(horizontal_align[0]);
+        bit_data.push(horizontal_align[1]);
+
+        bit_data.push(vertical_align[0]);
+        bit_data.push(vertical_align[1]);
+
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HorizontalAlignment {
+    Left = 0,
+    Middle = 1,
+    Right = 2,
+    Reserved = 3,
+}
+
+impl From<[bool; 2]> for HorizontalAlignment {
+    fn from(value: [bool; 2]) -> Self {
+        match value[0] {
+            false => match value[1] {
+                false => HorizontalAlignment::Left,
+                true => HorizontalAlignment::Middle,
+            },
+            true => match value[1] {
+                false => HorizontalAlignment::Middle,
+                true => HorizontalAlignment::Reserved,
+            },
+        }
+    }
+}
+
+impl From<HorizontalAlignment> for [bool; 2] {
+    fn from(value: HorizontalAlignment) -> Self {
+        match value {
+            HorizontalAlignment::Left => [false, false],
+            HorizontalAlignment::Middle => [false, true],
+            HorizontalAlignment::Right => [true, false],
+            HorizontalAlignment::Reserved => [true, true],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VerticalAlignment {
+    Top = 0,
+    Middle = 1,
+    Bottom = 2,
+    Reserved = 3,
+}
+
+impl From<[bool; 2]> for VerticalAlignment {
+    fn from(value: [bool; 2]) -> Self {
+        match value[0] {
+            false => match value[1] {
+                false => VerticalAlignment::Top,
+                true => VerticalAlignment::Middle,
+            },
+            true => match value[1] {
+                false => VerticalAlignment::Bottom,
+                true => VerticalAlignment::Reserved,
+            },
+        }
+    }
+}
+
+impl From<VerticalAlignment> for [bool; 2] {
+    fn from(value: VerticalAlignment) -> Self {
+        match value {
+            VerticalAlignment::Top => [false, false],
+            VerticalAlignment::Middle => [false, true],
+            VerticalAlignment::Bottom => [true, false],
+            VerticalAlignment::Reserved => [true, true],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InputNumberOptions {
+    pub enabled: bool,
+    pub real_time_editing: bool,
+}
+
+impl From<u8> for InputNumberOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        InputNumberOptions {
+            enabled: bit_data.pop().unwrap(),
+            real_time_editing: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<InputNumberOptions> for u8 {
+    fn from(value: InputNumberOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.enabled);
+        bit_data.push(value.real_time_editing);
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FormatType {
+    Decimal,
+    Exponential,
+}
+
+impl From<bool> for FormatType {
+    fn from(value: bool) -> Self {
+        match value {
+            false => FormatType::Decimal,
+            true => FormatType::Exponential,
+        }
+    }
+}
+
+impl From<FormatType> for bool {
+    fn from(value: FormatType) -> Self {
+        match value {
+            FormatType::Decimal => false,
+            FormatType::Exponential => true,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct InputListOptions {
+    pub enabled: bool,
+    pub real_time_editing: bool,
+}
+
+impl From<u8> for InputListOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        InputListOptions {
+            enabled: bit_data.pop().unwrap(),
+            real_time_editing: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<InputListOptions> for u8 {
+    fn from(value: InputListOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.enabled);
+        bit_data.push(value.real_time_editing);
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct OutputStringOptions {
+    pub transparent: bool,
+    pub auto_wrap: bool,
+    pub wrap_on_hyphen: bool,
+}
+
+impl From<u8> for OutputStringOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        OutputStringOptions {
+            transparent: bit_data.pop().unwrap(),
+            auto_wrap: bit_data.pop().unwrap(),
+            wrap_on_hyphen: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct NumberOptions {
+    pub transparent: bool,
+    pub display_leading_zeros: bool,
+    pub display_zero_as_blank: bool,
+    pub truncate: bool,
+}
+
+impl From<u8> for NumberOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        NumberOptions {
+            transparent: bit_data.pop().unwrap(),
+            display_leading_zeros: bit_data.pop().unwrap(),
+            display_zero_as_blank: bit_data.pop().unwrap(),
+            truncate: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum LineDirection {
+    TopLeftToBottomRight,
+    BottomLeftToTopRight,
+}
+
+impl From<u8> for LineDirection {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => LineDirection::TopLeftToBottomRight,
+            1 => LineDirection::BottomLeftToTopRight,
+            _ => panic!("Invalid line direction"),
+        }
+    }
+}
+
+impl From<LineDirection> for u8 {
+    fn from(value: LineDirection) -> Self {
+        match value {
+            LineDirection::TopLeftToBottomRight => 0,
+            LineDirection::BottomLeftToTopRight => 1,
+        }
+    }
+}
+
+impl From<NumberOptions> for u8 {
+    fn from(value: NumberOptions) -> Self {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.transparent);
+        bit_data.push(value.display_leading_zeros);
+        bit_data.push(value.display_zero_as_blank);
+        bit_data.push(value.truncate);
+        bit_data.extend([0; 4]);
+        bit_data.load::<u8>()
+    }
+}
+
+impl From<OutputStringOptions> for u8 {
+    fn from(value: OutputStringOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.transparent);
+        bit_data.push(value.auto_wrap);
+        bit_data.push(value.wrap_on_hyphen);
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ColorFormat {
+    ColorMonochrome,
+    Color4Bit,
+    Color8Bit,
+}
+
+impl From<ColorFormat> for u8 {
+    fn from(value: ColorFormat) -> Self {
+        match value {
+            ColorFormat::ColorMonochrome => 0,
+            ColorFormat::Color4Bit => 1,
+            ColorFormat::Color8Bit => 2,
+        }
+    }
+}
+
+impl From<u8> for ColorFormat {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => ColorFormat::ColorMonochrome,
+            1 => ColorFormat::Color4Bit,
+            2 => ColorFormat::Color8Bit,
+            _ => panic!("Invalid color format: {}", value),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ColorOption {
+    ForegroundBackground,
+    LineFontFill,
+}
+
+impl From<bool> for ColorOption {
+    fn from(value: bool) -> Self {
+        match value {
+            false => ColorOption::ForegroundBackground,
+            true => ColorOption::LineFontFill,
+        }
+    }
+}
+
+impl From<ColorOption> for bool {
+    fn from(value: ColorOption) -> Self {
+        match value {
+            ColorOption::ForegroundBackground => false,
+            ColorOption::LineFontFill => true,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct GraphicsContextOptions {
+    pub transparent: bool,
+    pub color: ColorOption,
+}
+
+impl From<u8> for GraphicsContextOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        GraphicsContextOptions {
+            transparent: bit_data.pop().unwrap(),
+            color: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl From<GraphicsContextOptions> for u8 {
+    fn from(value: GraphicsContextOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.transparent);
+        bit_data.push(value.color.into());
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct KeyGroupOptions {
+    pub available: bool,
+    pub transparent: bool,
+}
+
+impl From<u8> for KeyGroupOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        KeyGroupOptions {
+            available: bit_data.pop().unwrap(),
+            transparent: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<KeyGroupOptions> for u8 {
+    fn from(value: KeyGroupOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.available);
+        bit_data.push(value.transparent);
+        bit_data.extend([0; 6]);
+        bit_data.load::<u8>()
+    }
 }
