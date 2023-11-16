@@ -1,5 +1,19 @@
 use super::*;
 use crate::object_pool::colour::Colour;
+use crate::object_pool::object::{
+    AlarmMask, Animation, AuxiliaryControlDesignatorType2, AuxiliaryFunctionType1,
+    AuxiliaryFunctionType2, AuxiliaryInputType1, AuxiliaryInputType2, Button, CharacterRange,
+    CodePlane, ColourMap, ColourPalette, Container, DataMask, ExtendedInputAttributes,
+    ExternalObjectDefinition, ExternalObjectPointer, ExternalReferenceName, FillAttributes,
+    FontAttributes, GraphicData, GraphicsContext, InputAttributes, InputBoolean, InputList,
+    InputNumber, InputString, Key, KeyGroup, KeyGroupOptions, LineAttributes, Macro,
+    NumberVariable, Object, ObjectLabelReferenceList, ObjectPointer, OutputArchedBarGraph,
+    OutputEllipse, OutputLine, OutputLinearBarGraph, OutputList, OutputMeter, OutputNumber,
+    OutputPolygon, OutputRectangle, OutputString, PictureGraphic, ScaledGraphic, SoftKeyMask,
+    StringVariable, WindowMask, WorkingSet, WorkingSetSpecialControls,
+};
+use crate::object_pool::object_attributes::{MacroRef, ObjectLabel, ObjectRef, Point};
+use crate::object_pool::object_id::ObjectId;
 
 impl Object {
     pub fn read(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
@@ -212,7 +226,7 @@ impl Object {
                 if d == 0 || d == 1 {
                     Ok(d == 1)
                 } else {
-                    Err(UnknownObjectType)
+                    Err(ParseError::UnknownObjectType)
                 }
             }
             None => Err(ParseError::DataEmpty),
@@ -1299,8 +1313,10 @@ impl Object {
 
 #[cfg(test)]
 mod tests {
-    use crate::object_pool::{Colour, Object, ObjectId, ObjectRef, ObjectType, Point};
-    use crate::object_pool::{ObjectPool, WorkingSet};
+    use crate::object_pool::object::{Object, WorkingSet};
+    use crate::object_pool::object_attributes::{ObjectRef, Point};
+    use crate::object_pool::object_id::ObjectId;
+    use crate::object_pool::{Colour, ObjectPool, ObjectType};
     use std::vec::IntoIter;
 
     fn read_id_type(data: &mut dyn Iterator<Item = u8>) -> ObjectId {
@@ -1328,12 +1344,12 @@ mod tests {
             0x00, //Number of object references
             0x00, //Number of macro references
             0x00, //Number of language codes
-            0x00, 0x00, // Object ID reference 1
-            0x00, 0x00, // X Location reference 1
-            0x00, 0x00, // Y Location reference 1
-            0x00, 0x00, // Object ID reference 2
-            0x00, 0x00, // X Location reference 2
-            0x00, 0x00, // Y Location reference 2
+            0x00, 0xF1, // Object ID reference 1
+            0x00, 0x7B, // X Location reference 1
+            0x01, 0xC8, // Y Location reference 1
+            0x00, 0xF2, // Object ID reference 2
+            0x03, 0x15, // X Location reference 2
+            0x00, 0x0C, // Y Location reference 2
             0x00, // Event ID reference 1
             0x00, // Macro ID reference 1
             0x00, // Event ID reference 2
@@ -1360,10 +1376,16 @@ mod tests {
             background_colour: Colour::new_by_id(0xF0),
             selectable: true,
             active_mask: ObjectId::default(),
-            object_refs: vec![ObjectRef {
-                id: ObjectId::new(0xF1).unwrap(),
-                offset: Point { x: 123, y: 456 },
-            }],
+            object_refs: vec![
+                ObjectRef {
+                    id: ObjectId::new(0xF1).unwrap(),
+                    offset: Point { x: 123, y: 456 },
+                },
+                ObjectRef {
+                    id: ObjectId::new(0xF2).unwrap(),
+                    offset: Point { x: 789, y: 12 },
+                },
+            ],
             macro_refs: vec![],
             language_codes: vec![],
         };
