@@ -1299,16 +1299,31 @@ impl Object {
 
 #[cfg(test)]
 mod tests {
-    use crate::object_pool::WorkingSet;
-    use crate::object_pool::{Object, ObjectType};
+    use crate::object_pool::{Colour, Object, ObjectId, ObjectRef, ObjectType, Point};
+    use crate::object_pool::{ObjectPool, WorkingSet};
+    use std::vec::IntoIter;
+
+    fn read_id_type(data: &mut dyn Iterator<Item = u8>) -> ObjectId {
+        let id = Object::read_u16(data)
+            .unwrap_or_else(|_| panic!("Failed to read object ID",))
+            .try_into()
+            .unwrap_or_else(|why| panic!("Failed to convert object ID: {:#?}", why));
+
+        let _object_type: ObjectType = Object::read_u8(data)
+            .unwrap_or_else(|_| panic!("Failed to read object type",))
+            .try_into()
+            .unwrap_or_else(|_| panic!("Failed to read object type",));
+
+        id
+    }
 
     #[test]
     fn read_working_set_test() {
-        let data: Vec<u8> = vec![
-            0x00, 0x00, //Object ID
+        let mut data: IntoIter<u8> = vec![
+            0x34, 0x12, //Object ID
             0x00, //Type
-            0x00, //Background colour
-            0x00, //Selectable
+            0xF0, //Background colour
+            0x01, //Selectable
             0x00, 0x00, //Active mask
             0x00, //Number of object references
             0x00, //Number of macro references
@@ -1325,29 +1340,34 @@ mod tests {
             0x00, // Macro ID reference 2
             0x00, 0x00, // Language code 1
             0x00, 0x00, // Language code 2
-        ];
+        ]
+        .into_iter();
 
-        let id = Object::read_u16(&mut data.into_iter())
-            .unwrap_or_else(|_| panic!("Failed to read object ID",))
-            .try_into()
-            .unwrap_or_else(|_| panic!("Failed to convert object ID",));
+        let id = read_id_type(&mut data);
 
-        let _object_type: ObjectType = Object::read_u8(&mut data.into_iter())
-            .unwrap_or_else(|_| panic!("Failed to read object type",))
-            .try_into()
-            .unwrap_or_else(|_| panic!("Failed to read object type",));
+        let mut pool = ObjectPool::new();
+        pool.add(
+            Object::read_working_set(id, &mut data.into_iter())
+                .unwrap_or_else(|why| panic!("Failed to read working set: {:?}", why)),
+        );
+
+        let _working_set_act = pool
+            .working_set_object()
+            .unwrap_or_else(|| panic!("Failed to get working set of object pool",));
 
         let _working_set_exp = WorkingSet {
             id,
-            background_colour: 0,
-            selectable: false,
-            active_mask: Default::default(),
-            object_refs: vec![],
+            background_colour: Colour::new_by_id(0xF0),
+            selectable: true,
+            active_mask: ObjectId::default(),
+            object_refs: vec![ObjectRef {
+                id: ObjectId::new(0xF1).unwrap(),
+                offset: Point { x: 123, y: 456 },
+            }],
             macro_refs: vec![],
             language_codes: vec![],
         };
 
-        let _working_set_act = Object::read_working_set(id, &mut data.into_iter())
-            .unwrap_or_else(|_| panic!("Failed to read working set",));
+        assert_eq!(*_working_set_act, _working_set_exp);
     }
 }
