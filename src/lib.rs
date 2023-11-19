@@ -5,3 +5,4 @@
 
 pub mod driver;
 pub mod network_management;
+pub mod tracing;
