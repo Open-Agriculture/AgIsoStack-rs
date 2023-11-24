@@ -741,7 +741,7 @@ impl Object {
     fn write_colour_palette(data: &mut Vec<u8>, o: &ColourPalette) {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::ColourPalette);
-        Self::write_u16(data, o.options);
+        Self::write_u8(data, o.options);
         Self::write_u16(data, o.colours.len() as u16);
 
         Self::write_colours(data, &o.colours);
