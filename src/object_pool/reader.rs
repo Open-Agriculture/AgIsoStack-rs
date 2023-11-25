@@ -719,7 +719,7 @@ impl Object {
             needle_colour: Self::read_u8(data)?,
             border_colour: Self::read_u8(data)?,
             arc_and_tick_colour: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             nr_of_ticks: Self::read_u8(data)?,
             start_angle: Self::read_u8(data)?,
             end_angle: Self::read_u8(data)?,
@@ -746,7 +746,7 @@ impl Object {
             height: Self::read_u16(data)?,
             colour: Self::read_u8(data)?,
             target_line_colour: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             nr_of_ticks: Self::read_u8(data)?,
             min_value: Self::read_u16(data)?,
             max_value: Self::read_u16(data)?,
@@ -773,7 +773,7 @@ impl Object {
             height: Self::read_u16(data)?,
             colour: Self::read_u8(data)?,
             target_line_colour: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             start_angle: Self::read_u8(data)?,
             end_angle: Self::read_u8(data)?,
             bar_graph_width: Self::read_u16(data)?,
@@ -802,7 +802,7 @@ impl Object {
             actual_width: Self::read_u16(data)?,
             actual_height: Self::read_u16(data)?,
             format: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             transparency_colour: Self::read_u8(data)?,
             data: Vec::with_capacity(Self::read_u32(data)? as usize),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -1164,7 +1164,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = ExternalObjectDefinition {
             id,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             name: Self::read_name(data)?,
             objects: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -1181,7 +1181,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let o = ExternalReferenceName {
             id,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             name: Self::read_name(data)?,
         };
 
@@ -1216,7 +1216,7 @@ impl Object {
             first_child_index: Self::read_u8(data)?,
             last_child_index: Self::read_u8(data)?,
             default_child_index: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -1235,7 +1235,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = ColourPalette {
             id,
-            options: Self::read_u16(data)?,
+            options: Self::read_u8(data)?.into(),
             colours: Vec::with_capacity(Self::read_u16(data)?.into()),
         };
 
@@ -1288,7 +1288,7 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             scale_type: Self::read_u8(data)?,
-            options: Self::read_u8(data)?,
+            options: Self::read_u8(data)?.into(),
             value: Self::read_u16(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
