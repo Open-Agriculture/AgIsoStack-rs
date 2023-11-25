@@ -1,8 +1,11 @@
 use crate::network_management::name::NAME;
 use crate::object_pool::object_attributes::{
-    Alignment, ButtonOptions, ColorFormat, FormatType, GraphicsContextOptions, InputListOptions,
-    InputNumberOptions, InputStringOptions, KeyGroupOptions, LineDirection, MacroRef,
-    NumberOptions, ObjectLabel, ObjectRef, OutputStringOptions, Point, WindowMaskCellFormat,
+    Alignment, AnimationOptions, ButtonOptions, ColorFormat, ColourPaletteOptions,
+    ExternalObjectDefinitionOptions, ExternalReferenceNameOptions, FormatType,
+    GraphicsContextOptions, InputListOptions, InputNumberOptions, InputStringOptions,
+    KeyGroupOptions, LineDirection, MacroRef, NumberOptions, ObjectLabel, ObjectRef,
+    OutputArchedBarGraphOptions, OutputLinearBarGraphOptions, OutputMeterOptions,
+    OutputStringOptions, PictureGraphicOptions, Point, ScaledGraphicOptions, WindowMaskCellFormat,
     WindowMaskOptions, WindowType,
 };
 use crate::object_pool::object_id::ObjectId;
@@ -401,7 +404,7 @@ pub struct OutputMeter {
     pub needle_colour: u8,
     pub border_colour: u8,
     pub arc_and_tick_colour: u8,
-    pub options: u8,
+    pub options: OutputMeterOptions,
     pub nr_of_ticks: u8,
     pub start_angle: u8,
     pub end_angle: u8,
@@ -412,14 +415,14 @@ pub struct OutputMeter {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutputLinearBarGraph {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
     pub colour: u8,
     pub target_line_colour: u8,
-    pub options: u8,
+    pub options: OutputLinearBarGraphOptions,
     pub nr_of_ticks: u8,
     pub min_value: u16,
     pub max_value: u16,
@@ -437,7 +440,7 @@ pub struct OutputArchedBarGraph {
     pub height: u16,
     pub colour: u8,
     pub target_line_colour: u8,
-    pub options: u8,
+    pub options: OutputArchedBarGraphOptions,
     pub start_angle: u8,
     pub end_angle: u8,
     pub bar_graph_width: u16,
@@ -457,7 +460,7 @@ pub struct PictureGraphic {
     pub actual_width: u16,
     pub actual_height: u16,
     pub format: u8,
-    pub options: u8,
+    pub options: PictureGraphicOptions,
     pub transparency_colour: u8,
     pub data: Vec<u8>,
     pub macro_refs: Vec<MacroRef>,
@@ -666,10 +669,10 @@ pub struct ObjectLabelReferenceList {
     pub object_labels: Vec<ObjectLabel>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalObjectDefinition {
     pub id: ObjectId,
-    pub options: u8,
+    pub options: ExternalObjectDefinitionOptions,
     pub name: NAME,
     pub objects: Vec<ObjectId>,
 }
@@ -677,7 +680,7 @@ pub struct ExternalObjectDefinition {
 #[derive(Debug)]
 pub struct ExternalReferenceName {
     pub id: ObjectId,
-    pub options: u8,
+    pub options: ExternalReferenceNameOptions,
     pub name: NAME,
 }
 
@@ -700,7 +703,7 @@ pub struct Animation {
     pub first_child_index: u8,
     pub last_child_index: u8,
     pub default_child_index: u8,
-    pub options: u8,
+    pub options: AnimationOptions,
     pub object_refs: Vec<ObjectRef>,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -708,7 +711,7 @@ pub struct Animation {
 #[derive(Debug)]
 pub struct ColourPalette {
     pub id: ObjectId,
-    pub options: u16,
+    pub options: ColourPaletteOptions,
     pub colours: Vec<Colour>,
 }
 
@@ -725,7 +728,7 @@ pub struct ScaledGraphic {
     pub width: u16,
     pub height: u16,
     pub scale_type: u8,
-    pub options: u8,
+    pub options: ScaledGraphicOptions,
     pub value: u16,
     pub macro_refs: Vec<MacroRef>,
 }

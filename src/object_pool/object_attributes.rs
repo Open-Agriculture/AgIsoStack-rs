@@ -632,3 +632,437 @@ impl From<KeyGroupOptions> for u8 {
         bit_data.load::<u8>()
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeflectionDirection {
+    AntiClockwise,
+    Clockwise,
+}
+
+impl From<bool> for DeflectionDirection {
+    fn from(value: bool) -> Self {
+        match value {
+            false => DeflectionDirection::AntiClockwise,
+            true => DeflectionDirection::Clockwise,
+        }
+    }
+}
+
+impl From<DeflectionDirection> for bool {
+    fn from(value: DeflectionDirection) -> Self {
+        match value {
+            DeflectionDirection::AntiClockwise => false,
+            DeflectionDirection::Clockwise => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OutputMeterOptions {
+    pub draw_arc: bool,
+    pub draw_border: bool,
+    pub draw_ticks: bool,
+    pub deflection_direction: DeflectionDirection,
+}
+
+impl From<u8> for OutputMeterOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        OutputMeterOptions {
+            draw_arc: bit_data.pop().unwrap(),
+            draw_border: bit_data.pop().unwrap(),
+            draw_ticks: bit_data.pop().unwrap(),
+            deflection_direction: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl From<OutputMeterOptions> for u8 {
+    fn from(value: OutputMeterOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.draw_arc);
+        bit_data.push(value.draw_border);
+        bit_data.push(value.draw_ticks);
+        bit_data.push(value.deflection_direction.into());
+        bit_data.extend([0; 4]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BarGraphType {
+    Filled,
+    NotFilled,
+}
+
+impl From<bool> for BarGraphType {
+    fn from(value: bool) -> Self {
+        match value {
+            false => BarGraphType::Filled,
+            true => BarGraphType::NotFilled,
+        }
+    }
+}
+
+impl From<BarGraphType> for bool {
+    fn from(value: BarGraphType) -> Self {
+        match value {
+            BarGraphType::Filled => false,
+            BarGraphType::NotFilled => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AxisOrientation {
+    Vertical,
+    Horizontal,
+}
+
+impl From<bool> for AxisOrientation {
+    fn from(value: bool) -> Self {
+        match value {
+            false => AxisOrientation::Vertical,
+            true => AxisOrientation::Horizontal,
+        }
+    }
+}
+
+impl From<AxisOrientation> for bool {
+    fn from(value: AxisOrientation) -> Self {
+        match value {
+            AxisOrientation::Vertical => false,
+            AxisOrientation::Horizontal => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrowDirection {
+    GrowLeftDown,
+    GrowRightUp,
+}
+
+impl From<bool> for GrowDirection {
+    fn from(value: bool) -> Self {
+        match value {
+            false => GrowDirection::GrowLeftDown,
+            true => GrowDirection::GrowRightUp,
+        }
+    }
+}
+
+impl From<GrowDirection> for bool {
+    fn from(value: GrowDirection) -> Self {
+        match value {
+            GrowDirection::GrowLeftDown => false,
+            GrowDirection::GrowRightUp => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OutputLinearBarGraphOptions {
+    pub draw_border: bool,
+    pub draw_target_line: bool,
+    pub draw_ticks: bool,
+    pub bar_graph_type: BarGraphType,
+    pub axis_orientation: AxisOrientation,
+    pub grow_direction: GrowDirection,
+}
+
+impl From<u8> for OutputLinearBarGraphOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        OutputLinearBarGraphOptions {
+            draw_border: bit_data.pop().unwrap(),
+            draw_target_line: bit_data.pop().unwrap(),
+            draw_ticks: bit_data.pop().unwrap(),
+            bar_graph_type: bit_data.pop().unwrap().into(),
+            axis_orientation: bit_data.pop().unwrap().into(),
+            grow_direction: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl From<OutputLinearBarGraphOptions> for u8 {
+    fn from(value: OutputLinearBarGraphOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.draw_border);
+        bit_data.push(value.draw_target_line);
+        bit_data.push(value.draw_ticks);
+        bit_data.push(value.bar_graph_type.into());
+        bit_data.push(value.axis_orientation.into());
+        bit_data.push(value.grow_direction.into());
+        bit_data.extend([0; 2]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OutputArchedBarGraphOptions {
+    pub draw_border: bool,
+    pub draw_target_line: bool,
+    pub bar_graph_type: BarGraphType,
+    pub axis_orientation: AxisOrientation,
+    pub grow_direction: GrowDirection,
+    pub deflection_direction: DeflectionDirection,
+}
+
+impl From<u8> for OutputArchedBarGraphOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let draw_border = bit_data.pop().unwrap();
+        let draw_target_line = bit_data.pop().unwrap();
+        bit_data.pop(); //undefined bit
+
+        OutputArchedBarGraphOptions {
+            draw_border,
+            draw_target_line,
+            bar_graph_type: bit_data.pop().unwrap().into(),
+            axis_orientation: bit_data.pop().unwrap().into(),
+            grow_direction: bit_data.pop().unwrap().into(),
+            deflection_direction: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl From<OutputArchedBarGraphOptions> for u8 {
+    fn from(value: OutputArchedBarGraphOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.draw_border);
+        bit_data.push(value.draw_target_line);
+        bit_data.push(false); //undefined bit
+        bit_data.push(value.bar_graph_type.into());
+        bit_data.push(value.axis_orientation.into());
+        bit_data.push(value.grow_direction.into());
+        bit_data.push(value.deflection_direction.into());
+        bit_data.extend([0; 1]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DataCodeType {
+    Raw,
+    RunLength,
+}
+
+impl From<bool> for DataCodeType {
+    fn from(value: bool) -> Self {
+        match value {
+            false => DataCodeType::Raw,
+            true => DataCodeType::RunLength,
+        }
+    }
+}
+
+impl From<DataCodeType> for bool {
+    fn from(value: DataCodeType) -> Self {
+        match value {
+            DataCodeType::Raw => false,
+            DataCodeType::RunLength => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PictureGraphicOptions {
+    pub transparent: bool,
+    pub flashing: bool,
+    pub data_code_type: DataCodeType,
+}
+
+impl From<u8> for PictureGraphicOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        PictureGraphicOptions {
+            transparent: bit_data.pop().unwrap(),
+            flashing: bit_data.pop().unwrap(),
+            data_code_type: bit_data.pop().unwrap().into(),
+        }
+    }
+}
+
+impl From<PictureGraphicOptions> for u8 {
+    fn from(value: PictureGraphicOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.transparent);
+        bit_data.push(value.flashing);
+        bit_data.push(value.data_code_type.into());
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExternalObjectDefinitionOptions {
+    pub enabled: bool,
+}
+
+impl From<u8> for ExternalObjectDefinitionOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        ExternalObjectDefinitionOptions {
+            enabled: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<ExternalObjectDefinitionOptions> for u8 {
+    fn from(value: ExternalObjectDefinitionOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.enabled);
+        bit_data.extend([0; 7]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExternalReferenceNameOptions {
+    pub enabled: bool,
+}
+
+impl From<u8> for ExternalReferenceNameOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        ExternalReferenceNameOptions {
+            enabled: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<ExternalReferenceNameOptions> for u8 {
+    fn from(value: ExternalReferenceNameOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.enabled);
+        bit_data.extend([0; 7]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnimationSequence {
+    SingleShot,
+    Loop,
+}
+
+impl From<bool> for AnimationSequence {
+    fn from(value: bool) -> Self {
+        match value {
+            false => AnimationSequence::SingleShot,
+            true => AnimationSequence::Loop,
+        }
+    }
+}
+
+impl From<AnimationSequence> for bool {
+    fn from(value: AnimationSequence) -> Self {
+        match value {
+            AnimationSequence::SingleShot => false,
+            AnimationSequence::Loop => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DisabledBehaviour {
+    Pause,
+    ResetToFirst,
+    DefaultObject,
+    Blank,
+}
+
+impl From<[bool; 2]> for DisabledBehaviour {
+    fn from(value: [bool; 2]) -> Self {
+        match value {
+            [false, false] => DisabledBehaviour::Pause,
+            [false, true] => DisabledBehaviour::ResetToFirst,
+            [true, false] => DisabledBehaviour::DefaultObject,
+            [true, true] => DisabledBehaviour::Blank,
+        }
+    }
+}
+
+impl From<DisabledBehaviour> for [bool; 2] {
+    fn from(value: DisabledBehaviour) -> Self {
+        match value {
+            DisabledBehaviour::Pause => [false, false],
+            DisabledBehaviour::ResetToFirst => [false, true],
+            DisabledBehaviour::DefaultObject => [true, false],
+            DisabledBehaviour::Blank => [true, true],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AnimationOptions {
+    pub animation_sequence: AnimationSequence,
+    pub disabled_behaviour: DisabledBehaviour,
+}
+
+impl From<u8> for AnimationOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        AnimationOptions {
+            animation_sequence: bit_data.pop().unwrap().into(),
+            disabled_behaviour: DisabledBehaviour::from([
+                bit_data.pop().unwrap(),
+                bit_data.pop().unwrap(),
+            ]),
+        }
+    }
+}
+
+impl From<AnimationOptions> for u8 {
+    fn from(value: AnimationOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.animation_sequence.into());
+        let disabled_behaviour: [bool; 2] = value.disabled_behaviour.into();
+        bit_data.push(disabled_behaviour[0]);
+        bit_data.push(disabled_behaviour[1]);
+        bit_data.extend([0; 5]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ColourPaletteOptions {}
+
+impl From<u8> for ColourPaletteOptions {
+    fn from(value: u8) -> Self {
+        let mut _bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        ColourPaletteOptions {}
+    }
+}
+
+impl From<ColourPaletteOptions> for u8 {
+    fn from(_value: ColourPaletteOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.extend([0; 8]);
+        bit_data.load::<u8>()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScaledGraphicOptions {
+    pub flashing: bool,
+}
+
+impl From<u8> for ScaledGraphicOptions {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        ScaledGraphicOptions {
+            flashing: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<ScaledGraphicOptions> for u8 {
+    fn from(value: ScaledGraphicOptions) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.flashing);
+        bit_data.extend([0; 7]);
+        bit_data.load::<u8>()
+    }
+}
