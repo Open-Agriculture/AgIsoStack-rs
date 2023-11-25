@@ -15,7 +15,7 @@ pub enum NameField {
     SelfConfigurableAddress(bool),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NAME {
     raw_name: u64,
 }
