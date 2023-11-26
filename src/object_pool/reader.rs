@@ -1380,7 +1380,5 @@ mod tests {
         };
 
         assert_eq!(*_working_set_act, _working_set_exp);
-
-        todo!("Test working set object with invalid data")
     }
 }
