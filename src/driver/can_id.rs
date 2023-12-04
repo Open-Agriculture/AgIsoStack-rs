@@ -286,7 +286,7 @@ mod tests {
             Address(0x0F),
             Priority::Six,
         );
-        assert!(matches!(encode_result.is_err(), true));
+        assert!(encode_result.is_err());
 
         let error_contents: EncodingError = encode_result.unwrap_err();
         assert_eq!(error_contents.priority, Priority::Six);
