@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["NameField"],"struct":["NAME","NameBuilder"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["can_message","common_parameter_group_numbers","control_function","name","network_manager"]};

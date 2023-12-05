@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DriverCloseError","DriverOpenError","DriverReadError","DriverWriteError","Priority","Type"],"struct":["Address","CanId","Channel","Frame","Pgn","SocketcanDriver"],"trait":["Driver"]};

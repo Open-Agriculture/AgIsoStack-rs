@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ObjectType","ParseError"],"mod":["colour","reader","writer"],"struct":["ObjectPool"]};
