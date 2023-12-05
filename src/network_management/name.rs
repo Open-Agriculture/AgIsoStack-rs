@@ -15,7 +15,7 @@ pub enum NameField {
     SelfConfigurableAddress(bool),
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NAME {
     raw_name: u64,
 }
@@ -195,6 +195,12 @@ impl Default for NAME {
 impl From<NAME> for u64 {
     fn from(name: NAME) -> Self {
         name.raw_name
+    }
+}
+
+impl From<NAME> for [u8; 8] {
+    fn from(name: NAME) -> Self {
+        name.raw_name.to_le_bytes()
     }
 }
 

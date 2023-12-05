@@ -7,8 +7,10 @@ description = "A Free ISO-11783 and J1939 CAN Stack"
 keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smart-farming", "iso11783"]
 
 [dependencies]
+bitvec = "1.0.1"
 rand = "0.8.5"
 socketcan = { version = "2.0.0", optional = true }
+strum_macros = "0.25.2"
 
 [features]
 default = []
