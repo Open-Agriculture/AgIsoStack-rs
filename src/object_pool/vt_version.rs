@@ -1,5 +1,5 @@
 use crate::object_pool::ParseError;
-use crate::object_pool::ParseError::UnknownObjectType;
+use crate::object_pool::ParseError::UnsupportedVtVersion;
 
 #[derive(Debug, Default)]
 pub enum VtVersion {
@@ -39,7 +39,7 @@ impl TryFrom<u8> for VtVersion {
             4 => Ok(VtVersion::Version4),
             5 => Ok(VtVersion::Version5),
             6 => Ok(VtVersion::Version6),
-            _ => Err(UnknownObjectType),
+            _ => Err(UnsupportedVtVersion),
         }
     }
 }

@@ -2,7 +2,7 @@ pub mod colour;
 pub mod reader;
 pub mod writer;
 
-mod object;
+pub mod object;
 mod object_attributes;
 mod object_id;
 mod object_pool;
@@ -19,4 +19,7 @@ pub use object_type::ObjectType;
 pub enum ParseError {
     DataEmpty,
     UnknownObjectType,
+    UnexpectedNullObjectId,
+    BooleanOutOfRange,
+    UnsupportedVtVersion,
 }

@@ -10,13 +10,14 @@ impl ObjectId {
 
     pub fn new(id: u16) -> Result<Self, ParseError> {
         if id == Self::NULL.id {
-            Err(ParseError::UnknownObjectType)
+            Err(ParseError::UnexpectedNullObjectId)
         } else {
             Ok(ObjectId { id })
         }
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NullableObjectId(Option<ObjectId>);
 
 impl NullableObjectId {
