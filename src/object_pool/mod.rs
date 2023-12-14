@@ -12,6 +12,9 @@ mod vt_version;
 use crate::network_management::name::NAME;
 
 pub use colour::Colour;
+pub use object_attributes::ObjectRef;
+pub use object_id::NullableObjectId;
+pub use object_id::ObjectId;
 pub use object_pool::ObjectPool;
 pub use object_type::ObjectType;
 
