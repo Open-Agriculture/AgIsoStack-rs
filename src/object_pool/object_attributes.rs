@@ -5,6 +5,8 @@ use bitvec::vec::BitVec;
 use bitvec::view::BitView;
 use strum_macros::FromRepr;
 
+use super::object_id::NullableObjectId;
+
 #[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum WindowType {
@@ -168,9 +170,9 @@ impl core::ops::Add<Point<i16>> for Point<u16> {
 #[derive(Debug)]
 pub struct ObjectLabel {
     pub id: ObjectId,
-    pub string_variable_reference: ObjectId,
+    pub string_variable_reference: NullableObjectId,
     pub font_type: u8,
-    pub graphic_representation: ObjectId,
+    pub graphic_representation: NullableObjectId,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

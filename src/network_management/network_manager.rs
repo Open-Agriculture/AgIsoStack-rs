@@ -158,7 +158,7 @@ impl NetworkManager {
                     self.get_control_function_address_by_name(destination.get_name()),
                     priority,
                 )
-                .unwrap_or(CanId::default());
+                .unwrap_or_default();
 
                 if message_id.raw() != CanId::default().raw() {
                     self.enqueue_can_message(

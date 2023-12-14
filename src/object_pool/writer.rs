@@ -1,3 +1,4 @@
+use super::object_id::NullableObjectId;
 use super::*;
 use crate::object_pool::colour::Colour;
 use crate::object_pool::object::{
@@ -84,11 +85,18 @@ impl Object {
         data
     }
 
-    fn write_objects(data: &mut Vec<u8>, objects: &Vec<ObjectId>) {
+    fn write_object_ids(data: &mut Vec<u8>, objects: &Vec<ObjectId>) {
         for d in objects {
             Self::write_u16(data, *d);
         }
     }
+
+    fn write_nullable_object_ids(data: &mut Vec<u8>, objects: &Vec<NullableObjectId>) {
+        for d in objects {
+            Self::write_u16(data, *d);
+        }
+    }
+
     fn write_object_refs(data: &mut Vec<u8>, object_refs: &Vec<ObjectRef>) {
         for d in object_refs {
             Self::write_u16(data, d.id);
@@ -247,7 +255,7 @@ impl Object {
         Self::write_u8(data, o.objects.len() as u8);
         Self::write_u8(data, o.macro_refs.len() as u8);
 
-        Self::write_objects(data, &o.objects);
+        Self::write_object_ids(data, &o.objects);
         Self::write_macro_refs(data, &o.macro_refs);
     }
     fn write_key(data: &mut Vec<u8>, o: &Key) {
@@ -339,7 +347,7 @@ impl Object {
         Self::write_u8(data, o.options);
         Self::write_u8(data, o.macro_refs.len() as u8);
 
-        Self::write_objects(data, &o.list_items);
+        Self::write_nullable_object_ids(data, &o.list_items);
         Self::write_macro_refs(data, &o.macro_refs);
     }
     fn write_output_string(data: &mut Vec<u8>, o: &OutputString) {
@@ -628,7 +636,7 @@ impl Object {
         Self::write_u8(data, o.object_refs.len() as u8);
         Self::write_u8(data, o.macro_refs.len() as u8);
 
-        Self::write_objects(data, &o.objects);
+        Self::write_nullable_object_ids(data, &o.objects);
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -641,7 +649,7 @@ impl Object {
         Self::write_u8(data, o.objects.len() as u8);
         Self::write_u8(data, o.macro_refs.len() as u8);
 
-        Self::write_objects(data, &o.objects);
+        Self::write_object_ids(data, &o.objects);
         Self::write_macro_refs(data, &o.macro_refs);
     }
     fn write_graphics_context(data: &mut Vec<u8>, o: &GraphicsContext) {
@@ -675,7 +683,7 @@ impl Object {
         Self::write_u8(data, o.list_items.len() as u8);
         Self::write_u8(data, o.macro_refs.len() as u8);
 
-        Self::write_objects(data, &o.list_items);
+        Self::write_nullable_object_ids(data, &o.list_items);
         Self::write_macro_refs(data, &o.macro_refs);
     }
     fn write_extended_input_attributes(data: &mut Vec<u8>, o: &ExtendedInputAttributes) {
@@ -705,7 +713,7 @@ impl Object {
         Self::write_name(data, o.name);
         Self::write_u8(data, o.objects.len() as u8);
 
-        Self::write_objects(data, &o.objects);
+        Self::write_nullable_object_ids(data, &o.objects);
     }
     fn write_external_reference_name(data: &mut Vec<u8>, o: &ExternalReferenceName) {
         Self::write_u16(data, o.id);
