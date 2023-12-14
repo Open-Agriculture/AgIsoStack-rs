@@ -79,15 +79,23 @@ impl ObjectPool {
     where
         I: IntoIterator<Item = u8>,
     {
+        let mut op = Self::new();
+        op.extend_with_iop(data);
+        op
+    }
+
+    pub fn extend_with_iop<I>(&mut self, data: I)
+    where
+        I: IntoIterator<Item = u8>,
+    {
         let mut data = data.into_iter();
 
-        let mut op = Self::new();
-
         while let Ok(o) = Object::read(&mut data) {
-            op.objects.push(o);
+            // By the standard, if there already is an object with the same ID, the new object
+            // replaces the old one
+            self.objects.retain(|x| x.id() != o.id());
+            self.objects.push(o);
         }
-
-        op
     }
 
     pub fn as_iop(&self) -> Vec<u8> {
