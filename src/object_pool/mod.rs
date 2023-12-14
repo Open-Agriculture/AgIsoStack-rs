@@ -3,7 +3,7 @@ pub mod reader;
 pub mod writer;
 
 pub mod object;
-mod object_attributes;
+pub mod object_attributes;
 mod object_id;
 mod object_pool;
 mod object_type;
