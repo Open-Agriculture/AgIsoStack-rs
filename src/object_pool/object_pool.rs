@@ -23,8 +23,8 @@ impl ObjectPool {
     pub fn new() -> Self {
         // Setup the default colour map
         let mut colour_map = [0xFFu8; 256];
-        for i in 0..(colour_map.len() as u8) {
-            colour_map[i as usize] = i;
+        for i in 0..colour_map.len() {
+            colour_map[i] = i as u8;
         }
 
         ObjectPool {
