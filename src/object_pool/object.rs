@@ -11,6 +11,8 @@ use crate::object_pool::object_attributes::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::{Colour, ObjectType};
 
+use super::object_id::NullableObjectId;
+
 #[derive(Debug)]
 pub enum Object {
     WorkingSet(WorkingSet),
@@ -26,6 +28,7 @@ pub enum Object {
     InputList(InputList),
     OutputString(OutputString),
     OutputNumber(OutputNumber),
+    OutputList(OutputList),
     OutputLine(OutputLine),
     OutputRectangle(OutputRectangle),
     OutputEllipse(OutputEllipse),
@@ -50,7 +53,6 @@ pub enum Object {
     WindowMask(WindowMask),
     KeyGroup(KeyGroup),
     GraphicsContext(GraphicsContext),
-    OutputList(OutputList),
     ExtendedInputAttributes(ExtendedInputAttributes),
     ColourMap(ColourMap),
     ObjectLabelReferenceList(ObjectLabelReferenceList),
@@ -80,6 +82,7 @@ impl Object {
             Object::InputList(o) => o.id,
             Object::OutputString(o) => o.id,
             Object::OutputNumber(o) => o.id,
+            Object::OutputList(o) => o.id,
             Object::OutputLine(o) => o.id,
             Object::OutputRectangle(o) => o.id,
             Object::OutputEllipse(o) => o.id,
@@ -104,7 +107,6 @@ impl Object {
             Object::WindowMask(o) => o.id,
             Object::KeyGroup(o) => o.id,
             Object::GraphicsContext(o) => o.id,
-            Object::OutputList(o) => o.id,
             Object::ExtendedInputAttributes(o) => o.id,
             Object::ColourMap(o) => o.id,
             Object::ObjectLabelReferenceList(o) => o.id,
@@ -134,6 +136,7 @@ impl Object {
             Object::InputList(_) => ObjectType::InputList,
             Object::OutputString(_) => ObjectType::OutputString,
             Object::OutputNumber(_) => ObjectType::OutputNumber,
+            Object::OutputList(_) => ObjectType::OutputList,
             Object::OutputLine(_) => ObjectType::OutputLine,
             Object::OutputRectangle(_) => ObjectType::OutputRectangle,
             Object::OutputEllipse(_) => ObjectType::OutputEllipse,
@@ -160,7 +163,6 @@ impl Object {
             Object::WindowMask(_) => ObjectType::WindowMask,
             Object::KeyGroup(_) => ObjectType::KeyGroup,
             Object::GraphicsContext(_) => ObjectType::GraphicsContext,
-            Object::OutputList(_) => ObjectType::OutputList,
             Object::ExtendedInputAttributes(_) => ObjectType::ExtendedInputAttributes,
             Object::ColourMap(_) => ObjectType::ColourMap,
             Object::ObjectLabelReferenceList(_) => ObjectType::ObjectLabelReferenceList,
@@ -173,6 +175,171 @@ impl Object {
             Object::WorkingSetSpecialControls(_) => ObjectType::WorkingSetSpecialControls,
             Object::ScaledGraphic(_) => ObjectType::ScaledGraphic,
         }
+    }
+
+    ///
+    /// Returns a list of object IDs referenced by this object in the order they are listed
+    /// as attributes in the object specification.
+    ///
+    /// # Examples
+    /// We can use this method recursively to process objects in a "depth-first" manner
+    /// as required by the ISO 11783-6 (ch. 4.6.1.3) standard:
+    /// ```
+    /// use ag_iso_stack::object_pool::ObjectId;
+    /// use ag_iso_stack::object_pool::ObjectPool;
+    ///
+    /// fn process_object(object_pool: &ObjectPool, object_id: ObjectId) {
+    ///     let object = object_pool.object_by_id(object_id).unwrap();
+    ///     for referenced_object_id in object.referenced_objects() {
+    ///         process_object(object_pool, referenced_object_id);
+    ///     }
+    ///     // Process the object here
+    /// }
+    ///
+    /// let working_set = object_pool.working_set_object().unwrap();
+    /// process_object(&object_pool, working_set.id);
+    ///
+    pub fn referenced_objects(&self) -> Vec<ObjectId> {
+        let mut refs: Vec<ObjectId> = vec![];
+
+        fn extend_object_refs(refs: &mut Vec<ObjectId>, object_refs: &[ObjectRef]) {
+            refs.extend(object_refs.iter().map(|x| x.id));
+        }
+
+        fn push_nullable_id(refs: &mut Vec<ObjectId>, nullable_id: &NullableObjectId) {
+            if let Some(id) = nullable_id.0 {
+                refs.push(id);
+            }
+        }
+
+        fn extend_nullable_ids(refs: &mut Vec<ObjectId>, nullable_ids: &[NullableObjectId]) {
+            refs.extend(nullable_ids.iter().filter_map(|x| x.0));
+        }
+
+        match self {
+            Object::WorkingSet(o) => {
+                refs.push(o.active_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::DataMask(o) => {
+                push_nullable_id(&mut refs, &o.soft_key_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::AlarmMask(o) => {
+                push_nullable_id(&mut refs, &o.soft_key_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::Container(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::SoftKeyMask(o) => refs.extend(&o.objects),
+            Object::Key(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::Button(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::InputBoolean(o) => {
+                refs.push(o.foreground_colour);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputString(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.input_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputNumber(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputList(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                extend_nullable_ids(&mut refs, &o.list_items);
+            }
+            Object::OutputString(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::OutputNumber(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::OutputList(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                extend_nullable_ids(&mut refs, &o.list_items);
+            }
+            Object::OutputLine(o) => refs.push(o.line_attributes),
+            Object::OutputRectangle(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputEllipse(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputPolygon(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputMeter(o) => push_nullable_id(&mut refs, &o.variable_reference),
+            Object::OutputLinearBarGraph(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                push_nullable_id(&mut refs, &o.target_value_variable_reference);
+            }
+            Object::OutputArchedBarGraph(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                push_nullable_id(&mut refs, &o.target_value_variable_reference);
+            }
+            Object::PictureGraphic(_)
+            | Object::NumberVariable(_)
+            | Object::StringVariable(_)
+            | Object::FontAttributes(_)
+            | Object::LineAttributes(_) => (), // No references
+            Object::FillAttributes(o) => push_nullable_id(&mut refs, &o.fill_pattern),
+            Object::InputAttributes(_) => (), // No references
+            Object::ObjectPointer(o) => push_nullable_id(&mut refs, &o.value),
+            Object::Macro(_)
+            | Object::AuxiliaryFunctionType1(_)
+            | Object::AuxiliaryInputType1(_)
+            | Object::AuxiliaryFunctionType2(_)
+            | Object::AuxiliaryInputType2(_) => (), // No references
+            Object::AuxiliaryControlDesignatorType2(o) => refs.push(o.auxiliary_object_id),
+            Object::WindowMask(o) => {
+                push_nullable_id(&mut refs, &o.window_title);
+                push_nullable_id(&mut refs, &o.window_icon);
+                extend_nullable_ids(&mut refs, &o.objects);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::KeyGroup(o) => {
+                refs.push(o.name);
+                push_nullable_id(&mut refs, &o.key_group_icon);
+                refs.extend(&o.objects);
+            }
+            Object::GraphicsContext(o) => {
+                push_nullable_id(&mut refs, &o.font_attributes_object);
+                push_nullable_id(&mut refs, &o.line_attributes_object);
+                push_nullable_id(&mut refs, &o.fill_attributes_object);
+            }
+            Object::ExtendedInputAttributes(_) | Object::ColourMap(_) => (), // No references
+            Object::ObjectLabelReferenceList(o) => {
+                for label in o.object_labels.as_slice() {
+                    refs.push(label.id);
+                    push_nullable_id(&mut refs, &label.string_variable_reference);
+                    push_nullable_id(&mut refs, &label.graphic_representation);
+                }
+            }
+            Object::ExternalObjectDefinition(o) => extend_nullable_ids(&mut refs, &o.objects),
+            Object::ExternalReferenceName(_) => (), // No references
+            Object::ExternalObjectPointer(o) => {
+                push_nullable_id(&mut refs, &o.default_object_id);
+                push_nullable_id(&mut refs, &o.external_reference_name_id);
+                push_nullable_id(&mut refs, &o.external_object_id);
+            }
+            Object::Animation(o) => extend_object_refs(&mut refs, &o.object_refs),
+
+            Object::ColourPalette(_) | Object::GraphicData(_) => (), // No references
+            Object::WorkingSetSpecialControls(o) => {
+                push_nullable_id(&mut refs, &o.id_of_colour_map);
+                push_nullable_id(&mut refs, &o.id_of_colour_palette);
+            }
+            Object::ScaledGraphic(o) => push_nullable_id(&mut refs, &o.value),
+        };
+
+        refs
     }
 }
 
@@ -191,7 +358,7 @@ pub struct WorkingSet {
 pub struct DataMask {
     pub id: ObjectId,
     pub background_colour: u8,
-    pub soft_key_mask: ObjectId,
+    pub soft_key_mask: NullableObjectId,
     pub object_refs: Vec<ObjectRef>,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -200,7 +367,7 @@ pub struct DataMask {
 pub struct AlarmMask {
     pub id: ObjectId,
     pub background_colour: u8,
-    pub soft_key_mask: ObjectId,
+    pub soft_key_mask: NullableObjectId,
     pub priority: u8,
     pub acoustic_signal: u8,
     pub object_refs: Vec<ObjectRef>,
@@ -253,7 +420,7 @@ pub struct InputBoolean {
     pub background_colour: u8,
     pub width: u16,
     pub foreground_colour: ObjectId,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: bool,
     pub enabled: bool,
     pub macro_refs: Vec<MacroRef>,
@@ -266,9 +433,9 @@ pub struct InputString {
     pub height: u16,
     pub background_colour: u8,
     pub font_attributes: ObjectId,
-    pub input_attributes: ObjectId,
+    pub input_attributes: NullableObjectId,
     pub options: InputStringOptions,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub justification: Alignment,
     pub value: String,
     pub enabled: bool,
@@ -283,7 +450,7 @@ pub struct InputNumber {
     pub background_colour: u8,
     pub font_attributes: ObjectId,
     pub options: NumberOptions,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u32,
     pub min_value: u32,
     pub max_value: u32,
@@ -301,10 +468,10 @@ pub struct InputList {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u8,
     pub options: InputListOptions,
-    pub list_items: Vec<ObjectId>,
+    pub list_items: Vec<NullableObjectId>,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -316,7 +483,7 @@ pub struct OutputString {
     pub background_colour: u8,
     pub font_attributes: ObjectId,
     pub options: OutputStringOptions,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub justification: Alignment,
     pub value: String,
     pub macro_refs: Vec<MacroRef>,
@@ -330,7 +497,7 @@ pub struct OutputNumber {
     pub background_colour: u8,
     pub font_attributes: ObjectId,
     pub options: NumberOptions,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u32,
     pub offset: i32,
     pub scale: f32,
@@ -345,9 +512,9 @@ pub struct OutputList {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u8,
-    pub list_items: Vec<ObjectId>,
+    pub list_items: Vec<NullableObjectId>,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -368,7 +535,7 @@ pub struct OutputRectangle {
     pub width: u16,
     pub height: u16,
     pub line_suppression: u8,
-    pub fill_attributes: ObjectId,
+    pub fill_attributes: NullableObjectId,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -381,7 +548,7 @@ pub struct OutputEllipse {
     pub ellipse_type: u8,
     pub start_angle: u8,
     pub end_angle: u8,
-    pub fill_attributes: ObjectId,
+    pub fill_attributes: NullableObjectId,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -391,7 +558,7 @@ pub struct OutputPolygon {
     pub width: u16,
     pub height: u16,
     pub line_attributes: ObjectId,
-    pub fill_attributes: ObjectId,
+    pub fill_attributes: NullableObjectId,
     pub polygon_type: u8,
     pub points: Vec<Point<u16>>,
     pub macro_refs: Vec<MacroRef>,
@@ -410,7 +577,7 @@ pub struct OutputMeter {
     pub end_angle: u8,
     pub min_value: u16,
     pub max_value: u16,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u16,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -426,9 +593,9 @@ pub struct OutputLinearBarGraph {
     pub nr_of_ticks: u8,
     pub min_value: u16,
     pub max_value: u16,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u16,
-    pub target_value_variable_reference: ObjectId,
+    pub target_value_variable_reference: NullableObjectId,
     pub target_value: u16,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -446,9 +613,9 @@ pub struct OutputArchedBarGraph {
     pub bar_graph_width: u16,
     pub min_value: u16,
     pub max_value: u16,
-    pub variable_reference: ObjectId,
+    pub variable_reference: NullableObjectId,
     pub value: u16,
-    pub target_value_variable_reference: ObjectId,
+    pub target_value_variable_reference: NullableObjectId,
     pub target_value: u16,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -502,7 +669,7 @@ pub struct FillAttributes {
     pub id: ObjectId,
     pub fill_type: u8,
     pub fill_colour: u8,
-    pub fill_pattern: ObjectId,
+    pub fill_pattern: NullableObjectId,
     pub macro_refs: Vec<MacroRef>,
 }
 
@@ -561,7 +728,7 @@ pub struct ExtendedInputAttributes {
 #[derive(Debug)]
 pub struct ObjectPointer {
     pub id: ObjectId,
-    pub value: ObjectId,
+    pub value: NullableObjectId,
 }
 
 #[derive(Debug)]
@@ -630,9 +797,9 @@ pub struct GraphicsContext {
     pub graphics_cursor_y: i16,
     pub foreground_colour: u8,
     pub background_colour: u8,
-    pub font_attributes_object: ObjectId,
-    pub line_attributes_object: ObjectId,
-    pub fill_attributes_object: ObjectId,
+    pub font_attributes_object: NullableObjectId,
+    pub line_attributes_object: NullableObjectId,
+    pub fill_attributes_object: NullableObjectId,
     pub format: ColorFormat,
     pub options: GraphicsContextOptions,
     pub transparency_colour: u8,
@@ -646,9 +813,9 @@ pub struct WindowMask {
     pub background_colour: u8,
     pub options: WindowMaskOptions,
     pub name: ObjectId,
-    pub window_title: ObjectId,
-    pub window_icon: ObjectId,
-    pub objects: Vec<ObjectId>,
+    pub window_title: NullableObjectId,
+    pub window_icon: NullableObjectId,
+    pub objects: Vec<NullableObjectId>,
     pub object_refs: Vec<ObjectRef>,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -658,7 +825,7 @@ pub struct KeyGroup {
     pub id: ObjectId,
     pub options: KeyGroupOptions,
     pub name: ObjectId,
-    pub key_group_icon: ObjectId,
+    pub key_group_icon: NullableObjectId,
     pub objects: Vec<ObjectId>,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -674,7 +841,7 @@ pub struct ExternalObjectDefinition {
     pub id: ObjectId,
     pub options: ExternalObjectDefinitionOptions,
     pub name: NAME,
-    pub objects: Vec<ObjectId>,
+    pub objects: Vec<NullableObjectId>,
 }
 
 #[derive(Debug)]
@@ -687,9 +854,9 @@ pub struct ExternalReferenceName {
 #[derive(Debug)]
 pub struct ExternalObjectPointer {
     pub id: ObjectId,
-    pub default_object_id: ObjectId,
-    pub external_reference_name_id: ObjectId,
-    pub external_object_id: ObjectId,
+    pub default_object_id: NullableObjectId,
+    pub external_reference_name_id: NullableObjectId,
+    pub external_object_id: NullableObjectId,
 }
 
 #[derive(Debug)]
@@ -729,14 +896,14 @@ pub struct ScaledGraphic {
     pub height: u16,
     pub scale_type: u8,
     pub options: ScaledGraphicOptions,
-    pub value: u16,
+    pub value: NullableObjectId,
     pub macro_refs: Vec<MacroRef>,
 }
 
 #[derive(Debug)]
 pub struct WorkingSetSpecialControls {
     pub id: ObjectId,
-    pub id_of_colour_map: ObjectId,
-    pub id_of_colour_palette: ObjectId,
+    pub id_of_colour_map: NullableObjectId,
+    pub id_of_colour_palette: NullableObjectId,
     pub language_pairs: Vec<(String, String)>,
 }

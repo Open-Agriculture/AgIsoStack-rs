@@ -10,14 +10,15 @@ impl ObjectId {
 
     pub fn new(id: u16) -> Result<Self, ParseError> {
         if id == Self::NULL.id {
-            Err(ParseError::UnknownObjectType)
+            Err(ParseError::UnexpectedNullObjectId)
         } else {
             Ok(ObjectId { id })
         }
     }
 }
 
-pub struct NullableObjectId(Option<ObjectId>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NullableObjectId(pub Option<ObjectId>);
 
 impl NullableObjectId {
     pub const NULL: NullableObjectId = NullableObjectId(None);
@@ -71,6 +72,12 @@ impl TryFrom<u16> for ObjectId {
 
     fn try_from(id: u16) -> Result<Self, Self::Error> {
         ObjectId::new(id)
+    }
+}
+
+impl From<NullableObjectId> for Option<ObjectId> {
+    fn from(id: NullableObjectId) -> Self {
+        return id.0;
     }
 }
 

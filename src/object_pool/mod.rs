@@ -2,7 +2,7 @@ pub mod colour;
 pub mod reader;
 pub mod writer;
 
-mod object;
+pub mod object;
 mod object_attributes;
 mod object_id;
 mod object_pool;
@@ -12,6 +12,9 @@ mod vt_version;
 use crate::network_management::name::NAME;
 
 pub use colour::Colour;
+pub use object_attributes::ObjectRef;
+pub use object_id::NullableObjectId;
+pub use object_id::ObjectId;
 pub use object_pool::ObjectPool;
 pub use object_type::ObjectType;
 
@@ -19,4 +22,7 @@ pub use object_type::ObjectType;
 pub enum ParseError {
     DataEmpty,
     UnknownObjectType,
+    UnexpectedNullObjectId,
+    BooleanOutOfRange,
+    UnsupportedVtVersion,
 }
