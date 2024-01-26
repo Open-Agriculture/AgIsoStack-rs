@@ -28,6 +28,7 @@ pub enum Object {
     InputList(InputList),
     OutputString(OutputString),
     OutputNumber(OutputNumber),
+    OutputList(OutputList),
     OutputLine(OutputLine),
     OutputRectangle(OutputRectangle),
     OutputEllipse(OutputEllipse),
@@ -52,7 +53,6 @@ pub enum Object {
     WindowMask(WindowMask),
     KeyGroup(KeyGroup),
     GraphicsContext(GraphicsContext),
-    OutputList(OutputList),
     ExtendedInputAttributes(ExtendedInputAttributes),
     ColourMap(ColourMap),
     ObjectLabelReferenceList(ObjectLabelReferenceList),
@@ -82,6 +82,7 @@ impl Object {
             Object::InputList(o) => o.id,
             Object::OutputString(o) => o.id,
             Object::OutputNumber(o) => o.id,
+            Object::OutputList(o) => o.id,
             Object::OutputLine(o) => o.id,
             Object::OutputRectangle(o) => o.id,
             Object::OutputEllipse(o) => o.id,
@@ -106,7 +107,6 @@ impl Object {
             Object::WindowMask(o) => o.id,
             Object::KeyGroup(o) => o.id,
             Object::GraphicsContext(o) => o.id,
-            Object::OutputList(o) => o.id,
             Object::ExtendedInputAttributes(o) => o.id,
             Object::ColourMap(o) => o.id,
             Object::ObjectLabelReferenceList(o) => o.id,
@@ -136,6 +136,7 @@ impl Object {
             Object::InputList(_) => ObjectType::InputList,
             Object::OutputString(_) => ObjectType::OutputString,
             Object::OutputNumber(_) => ObjectType::OutputNumber,
+            Object::OutputList(_) => ObjectType::OutputList,
             Object::OutputLine(_) => ObjectType::OutputLine,
             Object::OutputRectangle(_) => ObjectType::OutputRectangle,
             Object::OutputEllipse(_) => ObjectType::OutputEllipse,
@@ -162,7 +163,6 @@ impl Object {
             Object::WindowMask(_) => ObjectType::WindowMask,
             Object::KeyGroup(_) => ObjectType::KeyGroup,
             Object::GraphicsContext(_) => ObjectType::GraphicsContext,
-            Object::OutputList(_) => ObjectType::OutputList,
             Object::ExtendedInputAttributes(_) => ObjectType::ExtendedInputAttributes,
             Object::ColourMap(_) => ObjectType::ColourMap,
             Object::ObjectLabelReferenceList(_) => ObjectType::ObjectLabelReferenceList,
@@ -175,6 +175,171 @@ impl Object {
             Object::WorkingSetSpecialControls(_) => ObjectType::WorkingSetSpecialControls,
             Object::ScaledGraphic(_) => ObjectType::ScaledGraphic,
         }
+    }
+
+    ///
+    /// Returns a list of object IDs referenced by this object in the order they are listed
+    /// as attributes in the object specification.
+    ///
+    /// # Examples
+    /// We can use this method recursively to process objects in a "depth-first" manner
+    /// as required by the ISO 11783-6 (ch. 4.6.1.3) standard:
+    /// ```
+    /// use ag_iso_stack::object_pool::ObjectId;
+    /// use ag_iso_stack::object_pool::ObjectPool;
+    ///
+    /// fn process_object(object_pool: &ObjectPool, object_id: ObjectId) {
+    ///     let object = object_pool.object_by_id(object_id).unwrap();
+    ///     for referenced_object_id in object.referenced_objects() {
+    ///         process_object(object_pool, referenced_object_id);
+    ///     }
+    ///     // Process the object here
+    /// }
+    ///
+    /// let working_set = object_pool.working_set_object().unwrap();
+    /// process_object(&object_pool, working_set.id);
+    ///
+    pub fn referenced_objects(&self) -> Vec<ObjectId> {
+        let mut refs: Vec<ObjectId> = vec![];
+
+        fn extend_object_refs(refs: &mut Vec<ObjectId>, object_refs: &[ObjectRef]) {
+            refs.extend(object_refs.iter().map(|x| x.id));
+        }
+
+        fn push_nullable_id(refs: &mut Vec<ObjectId>, nullable_id: &NullableObjectId) {
+            if let Some(id) = nullable_id.0 {
+                refs.push(id);
+            }
+        }
+
+        fn extend_nullable_ids(refs: &mut Vec<ObjectId>, nullable_ids: &[NullableObjectId]) {
+            refs.extend(nullable_ids.iter().filter_map(|x| x.0));
+        }
+
+        match self {
+            Object::WorkingSet(o) => {
+                refs.push(o.active_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::DataMask(o) => {
+                push_nullable_id(&mut refs, &o.soft_key_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::AlarmMask(o) => {
+                push_nullable_id(&mut refs, &o.soft_key_mask);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::Container(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::SoftKeyMask(o) => refs.extend(&o.objects),
+            Object::Key(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::Button(o) => extend_object_refs(&mut refs, &o.object_refs),
+            Object::InputBoolean(o) => {
+                refs.push(o.foreground_colour);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputString(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.input_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputNumber(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::InputList(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                extend_nullable_ids(&mut refs, &o.list_items);
+            }
+            Object::OutputString(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::OutputNumber(o) => {
+                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.variable_reference);
+            }
+            Object::OutputList(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                extend_nullable_ids(&mut refs, &o.list_items);
+            }
+            Object::OutputLine(o) => refs.push(o.line_attributes),
+            Object::OutputRectangle(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputEllipse(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputPolygon(o) => {
+                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.fill_attributes);
+            }
+            Object::OutputMeter(o) => push_nullable_id(&mut refs, &o.variable_reference),
+            Object::OutputLinearBarGraph(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                push_nullable_id(&mut refs, &o.target_value_variable_reference);
+            }
+            Object::OutputArchedBarGraph(o) => {
+                push_nullable_id(&mut refs, &o.variable_reference);
+                push_nullable_id(&mut refs, &o.target_value_variable_reference);
+            }
+            Object::PictureGraphic(_)
+            | Object::NumberVariable(_)
+            | Object::StringVariable(_)
+            | Object::FontAttributes(_)
+            | Object::LineAttributes(_) => (), // No references
+            Object::FillAttributes(o) => push_nullable_id(&mut refs, &o.fill_pattern),
+            Object::InputAttributes(_) => (), // No references
+            Object::ObjectPointer(o) => push_nullable_id(&mut refs, &o.value),
+            Object::Macro(_)
+            | Object::AuxiliaryFunctionType1(_)
+            | Object::AuxiliaryInputType1(_)
+            | Object::AuxiliaryFunctionType2(_)
+            | Object::AuxiliaryInputType2(_) => (), // No references
+            Object::AuxiliaryControlDesignatorType2(o) => refs.push(o.auxiliary_object_id),
+            Object::WindowMask(o) => {
+                push_nullable_id(&mut refs, &o.window_title);
+                push_nullable_id(&mut refs, &o.window_icon);
+                extend_nullable_ids(&mut refs, &o.objects);
+                extend_object_refs(&mut refs, &o.object_refs);
+            }
+            Object::KeyGroup(o) => {
+                refs.push(o.name);
+                push_nullable_id(&mut refs, &o.key_group_icon);
+                refs.extend(&o.objects);
+            }
+            Object::GraphicsContext(o) => {
+                push_nullable_id(&mut refs, &o.font_attributes_object);
+                push_nullable_id(&mut refs, &o.line_attributes_object);
+                push_nullable_id(&mut refs, &o.fill_attributes_object);
+            }
+            Object::ExtendedInputAttributes(_) | Object::ColourMap(_) => (), // No references
+            Object::ObjectLabelReferenceList(o) => {
+                for label in o.object_labels.as_slice() {
+                    refs.push(label.id);
+                    push_nullable_id(&mut refs, &label.string_variable_reference);
+                    push_nullable_id(&mut refs, &label.graphic_representation);
+                }
+            }
+            Object::ExternalObjectDefinition(o) => extend_nullable_ids(&mut refs, &o.objects),
+            Object::ExternalReferenceName(_) => (), // No references
+            Object::ExternalObjectPointer(o) => {
+                push_nullable_id(&mut refs, &o.default_object_id);
+                push_nullable_id(&mut refs, &o.external_reference_name_id);
+                push_nullable_id(&mut refs, &o.external_object_id);
+            }
+            Object::Animation(o) => extend_object_refs(&mut refs, &o.object_refs),
+
+            Object::ColourPalette(_) | Object::GraphicData(_) => (), // No references
+            Object::WorkingSetSpecialControls(o) => {
+                push_nullable_id(&mut refs, &o.id_of_colour_map);
+                push_nullable_id(&mut refs, &o.id_of_colour_palette);
+            }
+            Object::ScaledGraphic(o) => push_nullable_id(&mut refs, &o.value),
+        };
+
+        refs
     }
 }
 
