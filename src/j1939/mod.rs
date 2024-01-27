@@ -7,19 +7,14 @@
 //! 2. `Frame`, `Pgn`, `Address`, et al types
 
 mod address;
-mod can_id;
 mod driver;
 mod frame;
+mod id;
 mod pgn;
-
-#[cfg(feature = "socketcan")]
-mod socketcan;
+mod priority;
 
 pub use address::Address;
-pub use can_id::{CanId, Priority, Type};
 pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError};
 pub use frame::{Channel, Frame};
+pub use id::{Id, Priority};
 pub use pgn::Pgn;
-
-#[cfg(feature = "socketcan")]
-pub use self::socketcan::SocketcanDriver;

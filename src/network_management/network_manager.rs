@@ -2,7 +2,7 @@
 use std::time::Instant;
 
 use super::control_function::{AddressClaimingState, ControlFunction};
-use crate::driver::{Address, CanId, Pgn, Priority};
+use crate::j1939::{Address, Id, Pgn, Priority};
 use crate::network_management::can_message::CANMessage;
 use crate::network_management::common_parameter_group_numbers::CommonParameterGroupNumbers;
 use crate::network_management::name::NAME;
@@ -12,9 +12,9 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum MessageQueuePriority {
-    /// High priority messages are always sent to the driver before normal ones
+    /// High priority messages are always sent to the j1939 before normal ones
     High,
-    /// Normal messages are sent to the driver when no high priority messages are in the queue (todo)
+    /// Normal messages are sent to the j1939 when no high priority messages are in the queue (todo)
     Normal,
 }
 
@@ -101,7 +101,7 @@ impl NetworkManager {
     pub(super) fn construct_address_claim(source_address: Address, name: NAME) -> CANMessage {
         let address_claim = <NAME as Into<u64>>::into(name).to_le_bytes().to_vec();
 
-        let request_id = CanId::try_encode(
+        let request_id = Id::try_encode(
             Pgn::from_raw(CommonParameterGroupNumbers::AddressClaim as u32),
             source_address,
             Address::BROADCAST,
@@ -113,7 +113,7 @@ impl NetworkManager {
     pub(super) fn construct_request_for_address_claim() -> CANMessage {
         let pgn_to_request: u32 = CommonParameterGroupNumbers::AddressClaim as u32;
         let request = pgn_to_request.to_le_bytes().to_vec();
-        let request_id = CanId::try_encode(
+        let request_id = Id::try_encode(
             Pgn::from_raw(CommonParameterGroupNumbers::ParameterGroupNumberRequest as u32),
             Address::NULL,
             Address::BROADCAST,
@@ -152,15 +152,15 @@ impl NetworkManager {
             if data.len() <= 8 {
                 let source = source.borrow();
                 let destination = destination.borrow();
-                let message_id = CanId::try_encode(
+                let message_id = Id::try_encode(
                     parameter_group_number,
                     self.get_control_function_address_by_name(source.get_name()),
                     self.get_control_function_address_by_name(destination.get_name()),
                     priority,
                 )
-                .unwrap_or(CanId::default());
+                .unwrap_or(Id::default());
 
-                if message_id.raw() != CanId::default().raw() {
+                if message_id.raw() != Id::default().raw() {
                     self.enqueue_can_message(
                         CANMessage::new(data.to_vec(), message_id),
                         MessageQueuePriority::Normal,
@@ -298,15 +298,15 @@ impl NetworkManager {
     }
 
     fn update_transmit_messages(&mut self) {
-        let should_continue_sending: bool = true; // Todo, check driver return values.
+        let should_continue_sending: bool = true; // Todo, check j1939 return values.
 
         while !self.high_priority_can_message_tx_queue.is_empty() {
-            // todo hand off to driver
+            // todo hand off to j1939
             self.high_priority_can_message_tx_queue.pop_front();
         }
 
         while should_continue_sending && !self.normal_priority_can_message_tx_queue.is_empty() {
-            // todo hand off to driver
+            // todo hand off to j1939
             self.normal_priority_can_message_tx_queue.pop_front();
         }
     }

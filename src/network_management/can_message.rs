@@ -1,16 +1,16 @@
 // Copyright 2023 Raven Industries inc.
 use super::name::NAME;
-use crate::driver::CanId;
+use crate::j1939::Id;
 
 pub struct CANMessage {
     data: Vec<u8>,
-    identifier: CanId,
+    identifier: Id,
     source_name: NAME,
     destination_name: NAME,
 }
 
 impl CANMessage {
-    pub(super) fn new(data: Vec<u8>, identifier: CanId) -> CANMessage {
+    pub(super) fn new(data: Vec<u8>, identifier: Id) -> CANMessage {
         CANMessage {
             data,
             identifier,
@@ -23,7 +23,7 @@ impl CANMessage {
         self.data.as_slice()
     }
 
-    pub fn get_identifier(&self) -> CanId {
+    pub fn get_identifier(&self) -> Id {
         self.identifier
     }
 

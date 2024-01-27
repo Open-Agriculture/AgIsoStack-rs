@@ -1,5 +1,5 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::Address;
+use crate::j1939::Address;
 use crate::network_management::name::NAME;
 use rand::Rng;
 use std::cell::RefCell;

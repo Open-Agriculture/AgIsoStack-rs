@@ -1,85 +1,67 @@
 // Copyright 2023 Raven Industries inc.
 
+use bitvec::field::BitField;
+use bitvec::order::Msb0;
+use bitvec::vec::BitVec;
+use bitvec::view::BitView;
+use std::io::Read;
+
+pub enum ParsePgnError {
+    InvalidPgnLength,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct Pgn(u32);
+pub struct Pgn {
+    reserved: bool,
+    data_page: bool,
+    pdu_format: u8,
+    pdu_specific: u8,
+}
 
 impl Pgn {
-    /// A fake PGN used to denote a PGN that does not exist
-    pub const NULL: Pgn = Pgn(0xFFFFFFFF);
+    pub const MAX_PGN_VALUE: u32 = 0x3FFFF;
 
-    pub fn from_id(can_id: u32) -> Self {
-        const PDU2_FORMAT_MASK: u32 = 0x00F00000;
-        let raw_pgn = if (can_id & PDU2_FORMAT_MASK) < PDU2_FORMAT_MASK {
-            // point-to-point
-            (can_id >> 8) & 0x03FF00
-        } else {
-            // broadcast
-            (can_id >> 8) & 0x03FFFF
-        };
-        Pgn(raw_pgn)
+    pub fn new(reserved: bool, data_page: bool, pdu_format: u8, pdu_specific: u8) -> Self {
+        Self {
+            reserved,
+            data_page,
+            pdu_format,
+            pdu_specific,
+        }
     }
+}
 
-    pub fn from_raw(pgn: u32) -> Self {
-        Pgn(pgn)
-    }
+impl TryFrom<u32> for Pgn {
+    type Error = ParsePgnError;
 
-    #[inline]
-    pub fn is_broadcast(&self) -> bool {
-        !self.is_destination_specific()
-    }
+    fn try_from(raw_pgn: u32) -> Result<Self, Self::Error> {
+        if (raw_pgn > Self::MAX_PGN_VALUE) {
+            // raw value is too large to fit in PGN with 18 bits
+            Err(ParsePgnError::InvalidPgnLength)
+        }
 
-    #[inline]
-    pub fn is_destination_specific(&self) -> bool {
-        // PDU1 / destination specific PGNs have a PDU Format 0x00 - 0xEF
-        // PDU2 / broadcast PGNs have a PDU Format 0xF0 - 0xFF
-        self.pdu_format() <= 0xEF
-    }
-
-    #[inline]
-    pub fn is_proprietary(&self) -> bool {
-        self.pdu_format() == 0xEF
-    }
-
-    #[inline]
-    pub fn raw(&self) -> u32 {
-        self.0
-    }
-
-    #[inline]
-    pub fn pdu_specific(&self) -> u8 {
-        (self.raw() & 0x00FF) as u8
-    }
-
-    #[inline]
-    pub fn pdu_format(&self) -> u8 {
-        ((self.raw() & 0xFF00) >> 8) as u8
-    }
-
-    #[inline]
-    pub fn data_page(&self) -> u8 {
-        ((self.raw() & 0x10000) >> 16) as u8
-    }
-
-    #[inline]
-    pub fn extended_data_page(&self) -> u8 {
-        ((self.raw() & 0x20000) >> 17) as u8
+        let mut bit_data = raw_pgn.view_bits::<Msb0>().to_bitvec();
+        Ok(Self {
+            reserved: bit_data.pop().unwrap(),
+            data_page: bit_data.pop().unwrap(),
+            pdu_format: bit_data.load::<u8>().unwrap(),
+            pdu_specific: bit_data.load::<u8>().unwrap(),
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::j1939::Pgn;
 
     #[test]
-    fn test_from_id() {
-        let pgn = Pgn::from_id(0x18EF1CF5);
-        let expected = Pgn::from_raw(0x0EF00);
-        assert_eq!(pgn, expected);
+    fn test_from_raw() {
+        let pgn_parsed = Pgn::from_raw(0x00F04);
+        assert_eq!(pgn_parsed.is_ok(), true);
 
-        let pgn = Pgn::from_id(0x18FF3F13);
-        let expected = Pgn::from_raw(0x0FF3F);
-        assert_eq!(pgn, expected);
+        let pgn = Pgn::new(false, false, 0xF0, 0x04);
+        assert_eq!(pgn, pgn_parsed.unwrap());
     }
 
     #[test]
