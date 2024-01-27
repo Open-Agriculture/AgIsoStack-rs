@@ -21,6 +21,8 @@ ctrlc = "3.4.0"
 # TODO: Add optional tracing to the main library
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+
+[target.'cfg(unix)'.dev-dependencies]
 socketcan = { version = "3.3.0" }
 
 [[example]]
