@@ -9,13 +9,11 @@ keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smar
 [dependencies]
 bitvec = "1.0.1"
 rand = "0.8.5"
-socketcan = { version = "2.0.0", optional = true }
 strum_macros = "0.25.2"
 embedded-can = "0.4.1"
 
 [features]
 default = []
-socketcan = ["dep:socketcan"]
 
 [dev-dependencies]
 clap = { version = "4.3.19", features = ["derive"] }
@@ -23,7 +21,7 @@ ctrlc = "3.4.0"
 # TODO: Add optional tracing to the main library
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+socketcan = { version = "3.3.0" }
 
 [[example]]
 name = "forward"
-required-features = ["socketcan"]
