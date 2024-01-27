@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 use crate::network_management::name::NAME;
 use crate::object_pool::object_attributes::{
     Alignment, AnimationOptions, ButtonOptions, ColorFormat, ColourPaletteOptions,

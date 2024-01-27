@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Colour {
