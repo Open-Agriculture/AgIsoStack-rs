@@ -16,5 +16,6 @@ mod priority;
 pub use address::Address;
 pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError};
 pub use frame::{Channel, Frame};
-pub use id::{Id, Priority};
+pub use id::Id;
 pub use pgn::Pgn;
+pub use priority::Priority;
