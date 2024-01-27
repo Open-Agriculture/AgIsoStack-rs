@@ -8,6 +8,7 @@ use crate::driver::{
     CanId, Channel, Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError,
     Frame as InternalFrame, Type,
 };
+use crate::tracing;
 
 impl From<socketcan::Error> for DriverReadError {
     fn from(e: socketcan::Error) -> DriverReadError {
@@ -39,6 +40,7 @@ impl From<&InternalFrame> for socketcan::frame::CanDataFrame {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum SocketcanIface {
     Name(String),
     Index(u32),
@@ -116,9 +118,17 @@ impl Driver for SocketcanDriver {
         self.sock.is_some()
     }
     fn open(&mut self) -> Result<(), DriverOpenError> {
-        match &self.iface {
-            SocketcanIface::Name(s) => self.sock = Some(CanSocket::open(s)?),
-            SocketcanIface::Index(i) => self.sock = Some(CanSocket::open_iface(*i)?),
+        tracing::info!("Opening interface {:?}", self.iface);
+        let result = match &self.iface {
+            SocketcanIface::Name(s) => CanSocket::open(s),
+            SocketcanIface::Index(i) => CanSocket::open_iface(*i),
+        };
+        match result {
+            Ok(sock) => self.sock = Some(sock),
+            Err(e) => {
+                tracing::error!("Error '{e:?}' opening interface {:?}", self.iface);
+                return Err(e.into());
+            }
         }
         self.opened_timestamp = Instant::now();
 
@@ -127,6 +137,7 @@ impl Driver for SocketcanDriver {
         Ok(())
     }
     fn close(&mut self) -> Result<(), DriverCloseError> {
+        tracing::info!("Closing interface {:?}", self.iface);
         self.sock = None;
         Ok(())
     }
@@ -136,18 +147,31 @@ impl Driver for SocketcanDriver {
     /// The timestamp on the frame is the duration since [`open`](Self::open) was last called.
     fn read_nonblocking(&mut self, frame: &mut InternalFrame) -> Result<(), DriverReadError> {
         let Some(sock) = self.sock.as_mut() else {
+            tracing::warn!("Failed to read from closed interface {:?}", self.iface);
             return Err(DriverReadError::DriverClosed);
         };
         let socketcan_frame = sock.read_frame()?;
         *frame = self.to_frame(socketcan_frame);
+        tracing::trace!("Read frame {frame:?} from interface {:?}", self.iface);
         Ok(())
     }
     fn write_nonblocking(&mut self, frame: &InternalFrame) -> Result<(), DriverWriteError> {
         let Some(sock) = self.sock.as_mut() else {
+            tracing::warn!("Tried to write to closed interface {:?}", self.iface);
             return Err(DriverWriteError::DriverClosed);
         };
         let socketcan_frame: socketcan::frame::CanDataFrame = frame.into();
-        sock.write_frame(&socketcan_frame)?;
+        match sock.write_frame(&socketcan_frame) {
+            Ok(_) => tracing::trace!("Wrote frame {frame:?} to interface {:?}", self.iface),
+            Err(_e) => {
+                if _e.kind() != std::io::ErrorKind::WouldBlock {
+                    tracing::error!(
+                        "Error '{_e:?}' writing frame {frame:?} to interface {:?}",
+                        self.iface
+                    );
+                }
+            }
+        }
         Ok(())
     }
 }
