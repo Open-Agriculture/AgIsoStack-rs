@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 use crate::object_pool::ParseError;
 use crate::object_pool::ParseError::UnknownObjectType;
 

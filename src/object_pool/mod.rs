@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 pub mod colour;
 pub mod reader;
 pub mod writer;

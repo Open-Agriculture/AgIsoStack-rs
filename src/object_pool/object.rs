@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 use crate::network_management::name::NAME;
 use crate::object_pool::object_attributes::{
     Alignment, AnimationOptions, ButtonOptions, ColorFormat, ColourPaletteOptions,
@@ -12,6 +13,7 @@ use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::{Colour, ObjectType};
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum Object {
     WorkingSet(WorkingSet),
     DataMask(DataMask),

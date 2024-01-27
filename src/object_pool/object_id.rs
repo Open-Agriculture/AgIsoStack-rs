@@ -1,3 +1,4 @@
+// Copyright 2024 Raven Industries inc
 use crate::object_pool::ParseError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

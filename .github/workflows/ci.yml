@@ -1,7 +1,7 @@
 name: CI
 
 on:
-    push: 
+    push:
     pull_request:
         types: [opened, synchronize, reopened]
 
@@ -19,41 +19,44 @@ jobs:
 
         steps:
             - name: Checkout sources
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Install stable toolchain
               uses: actions-rs/toolchain@v1
               with:
-                  toolchain: stable
+                  toolchain: 1.75.0
                   profile: minimal
                   override: true
                   components: rustfmt
-                  
+
             - name: Setup cache
               uses: Swatinem/rust-cache@v2
 
+            - name: Check for copyright statements
+              run: |
+                  ./tools/check-copyright.sh --check
             - name: Check formatting
               uses: actions-rs/cargo@v1
               with:
                   command: fmt
                   args: --check
-                  
+
     lint:
         name: Lint
         runs-on: ubuntu-latest
 
         steps:
             - name: Checkout sources
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Install stable toolchain
               uses: actions-rs/toolchain@v1
               with:
-                  toolchain: stable
+                  toolchain: 1.75.0
                   profile: minimal
                   override: true
                   components: clippy
-                  
+
             - name: Setup cache
               uses: Swatinem/rust-cache@v2
 
@@ -69,15 +72,15 @@ jobs:
 
         steps:
             - name: Checkout sources
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Install stable toolchain
               uses: actions-rs/toolchain@v1
               with:
-                  toolchain: stable
+                  toolchain: 1.75.0
                   profile: minimal
                   override: true
-                  
+
             - name: Setup cache
               uses: Swatinem/rust-cache@v2
 
@@ -91,7 +94,7 @@ jobs:
               with:
                   command: tarpaulin
                   args: --release --all-features --engine llvm --out xml
-                        
+
             - name: Upload to codecov.io
               uses: codecov/codecov-action@v2
               with:
