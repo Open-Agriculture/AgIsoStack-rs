@@ -3,8 +3,6 @@ use crate::j1939::DriverOpenError;
 #[derive(Debug)]
 struct ParsePriorityError(u8);
 
-//TODO!: custom parse priority error
-
 impl std::fmt::Display for ParsePriorityError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -34,6 +32,21 @@ impl Priority {
     pub const HIGHEST: Priority = Priority::Zero;
     pub const DEFAULT: Priority = Priority::Six;
     pub const LOWEST: Priority = Priority::Seven;
+
+    #[inline]
+    pub fn is_highest(&self) -> bool {
+        self == Self::HIGHEST
+    }
+
+    #[inline]
+    pub fn is_default(&self) -> bool {
+        self == Self::DEFAULT
+    }
+
+    #[inline]
+    pub fn is_lowest(&self) -> bool {
+        self == Self::LOWEST
+    }
 }
 
 impl TryFrom<u8> for Priority {
