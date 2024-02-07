@@ -22,7 +22,7 @@ impl std::fmt::Display for ParsePgnError {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pgn {
     extended_data_page: bool,
     data_page: bool,
@@ -81,7 +81,7 @@ impl Pgn {
     }
 
     pub fn is_group_extension(&self) -> bool {
-        self.pdu_format <= Self::PDU_2 && self.pdu_specific > Self::PDU_1
+        self.pdu_specific > Self::PDU_1
     }
 
     pub fn get_group_extension(&self) -> Option<u8> {
@@ -188,16 +188,5 @@ mod tests {
         assert_eq!(pgn.is_destination_specific(), false);
         let pgn = Pgn::try_from(0x1FFFF).unwrap();
         assert_eq!(pgn.is_destination_specific(), false);
-    }
-}
-
-impl Default for Pgn {
-    fn default() -> Self {
-        Self {
-            extended_data_page: false,
-            data_page: false,
-            pdu_format: 0,
-            pdu_specific: 0,
-        }
     }
 }

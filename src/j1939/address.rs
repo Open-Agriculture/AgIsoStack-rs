@@ -13,7 +13,7 @@ impl Address {
     pub const NULL: Address = Address(0xFE);
 
     pub fn new(raw_address: u8) -> Self {
-        Self { 0: raw_address }
+        Self(raw_address)
     }
 
     pub fn raw(&self) -> u8 {

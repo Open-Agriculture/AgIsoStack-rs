@@ -9,9 +9,9 @@ use embedded_can::{ExtendedId, Id as EmbeddedId};
 
 #[derive(Debug)]
 pub enum ParseIdError {
-    PriorityParseError,
-    PgnParseError,
-    SourceAddressParseError,
+    Priority,
+    Pgn,
+    SourceAddress,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -70,7 +70,7 @@ impl TryFrom<EmbeddedId> for Id {
 
     fn try_from(value: EmbeddedId) -> Result<Self, Self::Error> {
         match value {
-            EmbeddedId::Standard(_) => Err(ParseIdError::PgnParseError),
+            EmbeddedId::Standard(_) => Err(ParseIdError::Pgn),
             EmbeddedId::Extended(id) => {
                 let bit_data = id.as_raw().view_bits::<Msb0>().to_bitvec();
                 let priority = Priority::try_from(bit_data.load::<u8>());
@@ -78,11 +78,11 @@ impl TryFrom<EmbeddedId> for Id {
                 let source_address = Address::new(bit_data.load::<u8>());
 
                 if priority.is_err() {
-                    return Err(ParseIdError::PriorityParseError);
+                    return Err(ParseIdError::Priority);
                 }
 
                 if pgn.is_err() {
-                    return Err(ParseIdError::PgnParseError);
+                    return Err(ParseIdError::Pgn);
                 }
 
                 Ok(Id::new(priority.unwrap(), pgn.unwrap(), source_address))
@@ -101,7 +101,7 @@ impl TryFrom<u32> for Id {
         let source_address = Address::new(bit_data.load::<u8>());
 
         if priority.is_err() || pgn.is_err() {
-            return Err(ParseIdError::PriorityParseError);
+            return Err(ParseIdError::Priority);
         }
 
         Ok(Id::new(priority.unwrap(), pgn.unwrap(), source_address))
