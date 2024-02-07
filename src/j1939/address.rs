@@ -16,19 +16,29 @@ impl Address {
         Self { 0: raw_address }
     }
 
+    pub fn raw(&self) -> u8 {
+        self.0
+    }
+
     #[inline]
     pub fn is_global(&self) -> bool {
         self.is_broadcast()
     }
 
     #[inline]
-    pub fn is_broadcast(&self) -> bool {
+    pub fn is_broadcast(self) -> bool {
         self == Self::BROADCAST
     }
 
     #[inline]
-    pub fn is_null(&self) -> bool {
+    pub fn is_null(self) -> bool {
         self == Self::NULL
+    }
+}
+
+impl Default for Address {
+    fn default() -> Self {
+        Self::NULL
     }
 }
 

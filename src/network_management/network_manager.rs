@@ -2,8 +2,7 @@
 use std::time::Instant;
 
 use super::control_function::{AddressClaimingState, ControlFunction};
-use crate::j1939::{Address, Id, Pgn, Priority};
-use crate::network_management::can_message::CANMessage;
+use crate::j1939::{Address, Frame, Id, Pgn, Priority};
 use crate::network_management::common_parameter_group_numbers::CommonParameterGroupNumbers;
 use crate::network_management::name::NAME;
 use std::cell::RefCell;
@@ -30,9 +29,9 @@ pub struct NetworkManager {
     control_function_table: [Option<Rc<RefCell<ControlFunction>>>; 253],
     inactive_control_functions: Vec<Rc<RefCell<ControlFunction>>>,
     address_claim_state_machines: Vec<Rc<RefCell<ControlFunction>>>,
-    high_priority_can_message_tx_queue: VecDeque<CANMessage>,
-    normal_priority_can_message_tx_queue: VecDeque<CANMessage>,
-    receive_message_queue: VecDeque<CANMessage>,
+    high_priority_can_message_tx_queue: VecDeque<Frame>,
+    normal_priority_can_message_tx_queue: VecDeque<Frame>,
+    receive_message_queue: VecDeque<Frame>,
 }
 
 impl NetworkManager {
@@ -51,14 +50,14 @@ impl NetworkManager {
         &self,
         address: Address,
     ) -> &Option<Rc<RefCell<ControlFunction>>> {
-        &self.control_function_table[address.0 as usize]
+        &self.control_function_table[address.raw() as usize]
     }
 
     pub fn get_control_function_address_by_name(&self, name: NAME) -> Address {
         for (i, cf) in self.control_function_table.iter().enumerate() {
             if let Some(extant_cf) = cf {
                 if extant_cf.borrow().get_name() == name {
-                    return Address(i as u8);
+                    return Address::new(i as u8);
                 }
             }
         }
@@ -75,11 +74,11 @@ impl NetworkManager {
 
     pub(super) fn get_next_free_arbitrary_address(&self) -> Address {
         for address in 129..247 {
-            let is_device_at_address = self.get_control_function_by_address(Address(address));
+            let is_device_at_address = self.get_control_function_by_address(Address::new(address));
             let is_valid_device: bool = is_device_at_address.is_some();
 
             if !is_valid_device {
-                return Address(address);
+                return Address::new(address);
             } else {
                 let device_at_our_address = is_device_at_address.as_ref().unwrap().borrow();
 
@@ -91,40 +90,36 @@ impl NetworkManager {
                 };
 
                 if <NAME as Into<u64>>::into(NAME::default()) == preferred_address_name {
-                    return Address(address);
+                    return Address::new(address);
                 }
             }
         }
         Address::NULL
     }
 
-    pub(super) fn construct_address_claim(source_address: Address, name: NAME) -> CANMessage {
+    pub(super) fn construct_address_claim(source_address: Address, name: NAME) -> Frame {
         let address_claim = <NAME as Into<u64>>::into(name).to_le_bytes().to_vec();
 
-        let request_id = Id::try_encode(
-            Pgn::from_raw(CommonParameterGroupNumbers::AddressClaim as u32),
+        let request_id = Id::new(
+            Priority::DEFAULT,
+            CommonParameterGroupNumbers::AddressClaim.get_pgn(),
             source_address,
-            Address::BROADCAST,
-            Priority::Default,
         );
-        CANMessage::new(address_claim, request_id.unwrap())
+        Frame::new(request_id, address_claim).unwrap()
     }
 
-    pub(super) fn construct_request_for_address_claim() -> CANMessage {
+    pub(super) fn construct_request_for_address_claim() -> Frame {
         let pgn_to_request: u32 = CommonParameterGroupNumbers::AddressClaim as u32;
         let request = pgn_to_request.to_le_bytes().to_vec();
-        let request_id = Id::try_encode(
-            Pgn::from_raw(CommonParameterGroupNumbers::ParameterGroupNumberRequest as u32),
-            Address::NULL,
-            Address::BROADCAST,
-            Priority::Three,
-        );
-        CANMessage::new(request, request_id.unwrap())
+        let mut pgn = CommonParameterGroupNumbers::ParameterGroupNumberRequest.get_pgn();
+        pgn.set_destination_address(Address::BROADCAST);
+        let request_id = Id::new(Priority::Three, pgn, Address::NULL);
+        Frame::new(request_id, request).unwrap()
     }
 
     pub(super) fn enqueue_can_message(
         &mut self,
-        message: CANMessage,
+        message: Frame,
         queue_priority: MessageQueuePriority,
     ) {
         // Todo, max queue depth?
@@ -152,21 +147,21 @@ impl NetworkManager {
             if data.len() <= 8 {
                 let source = source.borrow();
                 let destination = destination.borrow();
-                let message_id = Id::try_encode(
-                    parameter_group_number,
-                    self.get_control_function_address_by_name(source.get_name()),
+                let mut pgn = parameter_group_number;
+                pgn.set_destination_address(
                     self.get_control_function_address_by_name(destination.get_name()),
+                );
+                let message_id = Id::new(
                     priority,
-                )
-                .unwrap_or(Id::default());
+                    pgn,
+                    self.get_control_function_address_by_name(source.get_name()),
+                );
 
-                if message_id.raw() != Id::default().raw() {
-                    self.enqueue_can_message(
-                        CANMessage::new(data.to_vec(), message_id),
-                        MessageQueuePriority::Normal,
-                    );
-                    return CANTransmitState::Success;
-                }
+                self.enqueue_can_message(
+                    Frame::new(message_id, data.to_vec()).unwrap(),
+                    MessageQueuePriority::Normal,
+                );
+                return CANTransmitState::Success;
             }
         }
         CANTransmitState::Fail
@@ -250,19 +245,24 @@ impl NetworkManager {
             let current_message = self.receive_message_queue.front().unwrap();
 
             // Process address claims and requests to claim
-            if NAME::default() == current_message.get_destination_name() {
+            if NAME::default() == NAME::default()
+            /*TODO!: Replaced following code line by upper NAME::default(). There needs to be another abstraction of ISO 11783 specific frames which includes the NAME*/
+            /*current_message.get_destination_name()*/
+            {
                 // Broadcast Message
-                if current_message.get_identifier().pgn()
-                    == Pgn::from_raw(CommonParameterGroupNumbers::AddressClaim as u32)
+                if current_message.id().pgn().pdu_format()
+                    == CommonParameterGroupNumbers::AddressClaim
+                        .get_pgn()
+                        .pdu_format()
                 {
                     // Todo
-                } else if current_message.get_identifier().pgn()
-                    == Pgn::from_raw(
-                        CommonParameterGroupNumbers::ParameterGroupNumberRequest as u32,
-                    )
-                    && current_message.get_data().len() >= 3
+                } else if current_message.id().pgn().pdu_format()
+                    == CommonParameterGroupNumbers::ParameterGroupNumberRequest
+                        .get_pgn()
+                        .pdu_format()
+                    && current_message.clone().data().len() >= 3
                 {
-                    let message_data = current_message.get_data();
+                    let message_data = current_message.clone().data();
                     let requested_pgn: u32 = (message_data[0] as u32)
                         | ((message_data[1] as u32) << 8)
                         | ((message_data[2] as u32) << 16);
@@ -350,7 +350,7 @@ mod tests {
 
         let new_cf = ControlFunction::new_internal_control_function(
             test_name,
-            Address(0x81),
+            Address::new(0x81),
             true,
             &mut network,
         );

@@ -1,7 +1,5 @@
-use crate::j1939::DriverOpenError;
-
 #[derive(Debug)]
-struct ParsePriorityError(u8);
+pub struct ParsePriorityError(u8);
 
 impl std::fmt::Display for ParsePriorityError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -14,18 +12,19 @@ impl std::fmt::Display for ParsePriorityError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum Priority {
     /// You may also use [`Priority::HIGHEST`] as an alias
-    Zero = 0x0,
-    One = 0x1,
-    Two = 0x2,
-    Three = 0x3,
-    Four = 0x4,
-    Five = 0x5,
+    Zero = 0,
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5,
     /// You may also use [`Priority::DEFAULT`] as an alias
-    Six = 0x6,
+    Six = 6,
     /// You may also use [`Priority::LOWEST`] as an alias
-    Seven = 0x7,
+    Seven = 7,
 }
 
 impl Priority {
@@ -34,18 +33,24 @@ impl Priority {
     pub const LOWEST: Priority = Priority::Seven;
 
     #[inline]
-    pub fn is_highest(&self) -> bool {
+    pub fn is_highest(self) -> bool {
         self == Self::HIGHEST
     }
 
     #[inline]
-    pub fn is_default(&self) -> bool {
+    pub fn is_default(self) -> bool {
         self == Self::DEFAULT
     }
 
     #[inline]
-    pub fn is_lowest(&self) -> bool {
+    pub fn is_lowest(self) -> bool {
         self == Self::LOWEST
+    }
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Priority::DEFAULT
     }
 }
 

@@ -1,36 +1,54 @@
-use socketcan::{embedded_can, Id as EmbeddedId};
 // Copyright 2023 Raven Industries inc.
 use crate::j1939::Id;
-use embedded_can::Frame as EmbeddedFrame;
+use embedded_can::{Frame as EmbeddedFrame, Id as EmbeddedId};
 
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct Channel(u8);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Frame {
-    pub timestamp: std::time::Duration,
-    pub id: Id,
-    pub data: Vec<u8>,
+    id: Id,
+    data: Vec<u8>,
 }
 
 impl Frame {
-    pub fn new(id: Id, data: Vec<u8>) -> Self {
-        Self {
-            timestamp: todo!(),
-            id,
-            data,
+    pub fn new(id: impl Into<EmbeddedId>, data: Vec<u8>) -> Option<Self> {
+        let frame_id = match id.into() {
+            EmbeddedId::Standard(_) => None,
+            EmbeddedId::Extended(id) => Some(id),
+        };
+
+        let parsed_id = Id::try_from(EmbeddedId::Extended(frame_id.unwrap()));
+
+        if frame_id.is_none() || parsed_id.is_err() {
+            return None;
         }
+
+        Some(Self {
+            id: parsed_id.unwrap(),
+            data,
+        })
+    }
+
+    #[inline]
+    pub fn id(&self) -> Id {
+        self.id
+    }
+
+    #[inline]
+    pub fn data(self) -> Vec<u8> {
+        self.data
     }
 }
 
 impl EmbeddedFrame for Frame {
     fn new(id: impl Into<EmbeddedId>, data: &[u8]) -> Option<Self> {
-        Self::new(id.into(), data.to_vec())
+        Frame::new(id, data.to_vec())
     }
 
-    fn new_remote(id: impl Into<Id>, dlc: usize) -> Option<Self> {
-        //J1939 does not support remote frame
+    fn new_remote(_id: impl Into<EmbeddedId>, _dlc: usize) -> Option<Self> {
+        //J1939 does not support remote frames
         None
     }
 
@@ -55,7 +73,7 @@ impl EmbeddedFrame for Frame {
     }
 
     fn id(&self) -> EmbeddedId {
-        todo!()
+        EmbeddedId::from(self.id)
     }
 
     fn dlc(&self) -> usize {

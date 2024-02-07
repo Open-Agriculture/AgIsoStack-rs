@@ -2,8 +2,9 @@
 
 use std::sync::mpsc::channel;
 
-use ag_iso_stack::j1939::{Driver, DriverReadError, Frame, SocketcanDriver};
+use ag_iso_stack::j1939::{DriverReadError, Frame};
 use clap::Parser;
+use embedded_can::nb::Can;
 
 /// Forward CAN traffic from one interface to another
 #[derive(Debug, Parser)]
@@ -26,9 +27,9 @@ struct Options {
     pub output_interface: String,
 }
 
-fn create_driver(iface: &str) -> impl Driver {
+fn create_driver(iface: &str) -> impl Can {
     if let Ok(index) = iface.parse::<u32>() {
-        SocketcanDriver::new_by_index(index)
+        CanSocket::new_by_index(index)
     } else {
         SocketcanDriver::new_by_name(iface)
     }
