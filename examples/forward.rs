@@ -28,8 +28,6 @@ struct Options {
 fn main() {
     let opts = Options::parse();
 
-    
-
     let subscriber = tracing_subscriber::fmt()
         // ... add configuration
         .finish();
@@ -43,20 +41,26 @@ fn main() {
         opts.output_interface
     );
 
-    let mut input = CanSocket::open(&opts.input_interface).expect("The given input interface cannot be opened!");
-    let mut output = CanSocket::open(&opts.output_interface).expect("The given output interface cannot be opened!");
+    let mut input = CanSocket::open(&opts.input_interface)
+        .expect("The given input interface cannot be opened!");
+    let mut output = CanSocket::open(&opts.output_interface)
+        .expect("The given output interface cannot be opened!");
 
-    input.set_nonblocking(true).expect("Could not set input bus to non-blocking!");
-    output.set_nonblocking(true).expect("Could not set output bus to non-blocking!");
+    input
+        .set_nonblocking(true)
+        .expect("Could not set input bus to non-blocking!");
+    output
+        .set_nonblocking(true)
+        .expect("Could not set output bus to non-blocking!");
 
     loop {
         match input.receive() {
             Ok(frame) => {
-                output.transmit(&frame).expect("Could not forward received message!");
-            },
+                output
+                    .transmit(&frame)
+                    .expect("Could not forward received message!");
+            }
             Err(_err) => continue,
         }
     }
-
-
 }
