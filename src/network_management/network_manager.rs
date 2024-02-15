@@ -2,7 +2,7 @@
 use std::time::Instant;
 
 use super::control_function::{AddressClaimingState, ControlFunction};
-use crate::j1939::{Address, Frame, Id, Pgn, Priority};
+use crate::j1939::{Address, ExtendedId, Frame, Pgn, Priority};
 use crate::network_management::common_parameter_group_numbers::CommonParameterGroupNumbers;
 use crate::network_management::name::NAME;
 use std::cell::RefCell;
@@ -100,7 +100,7 @@ impl NetworkManager {
     pub(super) fn construct_address_claim(source_address: Address, name: NAME) -> Frame {
         let address_claim = <NAME as Into<u64>>::into(name).to_le_bytes().to_vec();
 
-        let request_id = Id::new(
+        let request_id = ExtendedId::new(
             Priority::DEFAULT,
             CommonParameterGroupNumbers::AddressClaim.get_pgn(),
             source_address,
@@ -113,7 +113,7 @@ impl NetworkManager {
         let request = pgn_to_request.to_le_bytes().to_vec();
         let mut pgn = CommonParameterGroupNumbers::ParameterGroupNumberRequest.get_pgn();
         pgn.set_destination_address(Address::BROADCAST);
-        let request_id = Id::new(Priority::Three, pgn, Address::NULL);
+        let request_id = ExtendedId::new(Priority::Three, pgn, Address::NULL);
         Frame::new(request_id, request).unwrap()
     }
 
@@ -151,7 +151,7 @@ impl NetworkManager {
                 pgn.set_destination_address(
                     self.get_control_function_address_by_name(destination.get_name()),
                 );
-                let message_id = Id::new(
+                let message_id = ExtendedId::new(
                     priority,
                     pgn,
                     self.get_control_function_address_by_name(source.get_name()),

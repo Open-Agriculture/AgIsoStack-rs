@@ -1,5 +1,7 @@
 // Copyright 2023 Raven Industries inc.
-use crate::j1939::Id;
+use crate::j1939::id::Id;
+use crate::j1939::standard_id::StandardId;
+use crate::j1939::ExtendedId;
 use embedded_can::{Frame as EmbeddedFrame, Id as EmbeddedId};
 
 #[derive(Debug, Default)]
@@ -14,14 +16,16 @@ pub struct Frame {
 
 impl Frame {
     pub fn new(id: impl Into<EmbeddedId>, data: Vec<u8>) -> Option<Self> {
-        let frame_id = match id.into() {
-            EmbeddedId::Standard(_) => None,
-            EmbeddedId::Extended(id) => Some(id),
+        let frame_id: Id = match id.into() {
+            EmbeddedId::Standard(id) => StandardId::try_from(EmbeddedId::Standard(id))
+                .expect("Invalid standard ID")
+                .into(),
+            EmbeddedId::Extended(id) => ExtendedId::try_from(EmbeddedId::Extended(id))
+                .expect("Invalid extended ID")
+                .into(),
         };
 
-        let parsed_id = Id::try_from(EmbeddedId::Extended(frame_id.unwrap()));
-
-        if frame_id.is_none() || parsed_id.is_err() {
+        if frame_id {
             return None;
         }
 
@@ -32,7 +36,7 @@ impl Frame {
     }
 
     #[inline]
-    pub fn id(&self) -> Id {
+    pub fn id(&self) -> ExtendedId {
         self.id
     }
 

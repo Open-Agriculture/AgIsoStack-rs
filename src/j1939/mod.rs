@@ -8,14 +8,17 @@
 
 mod address;
 mod driver;
+mod extended_id;
 mod frame;
-mod id;
+mod page;
 mod pgn;
 mod priority;
+mod standard_id;
+mod id;
 
 pub use address::Address;
 pub use driver::{Driver, DriverCloseError, DriverOpenError, DriverReadError, DriverWriteError};
+pub use extended_id::ExtendedId;
 pub use frame::{Channel, Frame};
-pub use id::Id;
 pub use pgn::Pgn;
 pub use priority::Priority;

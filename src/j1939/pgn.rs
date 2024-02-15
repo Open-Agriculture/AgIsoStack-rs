@@ -1,7 +1,8 @@
 // Copyright 2023 Raven Industries inc.
+use crate::j1939::page::Page;
 use crate::j1939::Address;
 use bitvec::field::BitField;
-use bitvec::order::Msb0;
+use bitvec::order::{Lsb0, Msb0};
 use bitvec::vec::BitVec;
 use bitvec::view::BitView;
 
@@ -31,9 +32,16 @@ pub struct Pgn {
 }
 
 impl Pgn {
+    pub const PGN_LENGTH: usize = 18;
     pub const MAX_PGN_VALUE: u32 = 0x3FFFF;
     pub const PDU_1: u8 = 0xEF;
     pub const PDU_2: u8 = 0xFF;
+    pub const EDP_START: u8 = 0;
+    pub const DP_START: u8 = 1;
+    pub const PDU_FORMAT_START: usize = 2;
+    pub const PDU_FORMAT_END: usize = 10;
+    pub const PDU_SPECIFIC_START: usize = 10;
+    pub const PDU_SPECIFIC_END: usize = 18;
 
     pub fn new(
         extended_data_page: bool,
@@ -56,9 +64,9 @@ impl Pgn {
                 .view_bits_mut::<Msb0>()
                 .to_bitvec(),
         );
-        raw_pgn.append(&mut (self.data_page as u8).view_bits_mut::<Msb0>().to_bitvec());
-        raw_pgn.extend(self.pdu_format.view_bits::<Msb0>());
-        raw_pgn.extend(self.pdu_specific.view_bits::<Msb0>());
+        raw_pgn.append(&mut (self.data_page as u8).view_bits_mut::<Lsb0>().to_bitvec());
+        raw_pgn.extend(self.pdu_format.view_bits::<Lsb0>());
+        raw_pgn.extend(self.pdu_specific.view_bits::<Lsb0>());
         raw_pgn
     }
 
@@ -102,6 +110,10 @@ impl Pgn {
         self.data_page
     }
 
+    pub fn page(&self) -> Page {
+        Page::from([self.extended_data_page, self.data_page])
+    }
+
     #[inline]
     pub fn pdu_format(&self) -> u8 {
         self.pdu_format
@@ -122,13 +134,26 @@ impl TryFrom<u32> for Pgn {
             return Err(ParsePgnError::InvalidPgnLength(raw_pgn));
         }
 
-        let mut bit_data = raw_pgn.view_bits::<Msb0>().to_bitvec();
-        Ok(Self {
-            extended_data_page: bit_data.pop().unwrap(),
-            data_page: bit_data.pop().unwrap(),
-            pdu_format: bit_data.load::<u8>(),
-            pdu_specific: bit_data.load::<u8>(),
-        })
+        let raw_pgn_be_bytes = raw_pgn.to_le_bytes();
+        let mut bit_data = raw_pgn_be_bytes.view_bits::<Lsb0>().to_bitvec();
+        bit_data.truncate(Pgn::PGN_LENGTH);
+        bit_data.reverse();
+
+        let mut pdu_format = bit_data[Self::PDU_FORMAT_START..Self::PDU_FORMAT_END].to_bitvec();
+        pdu_format.reverse();
+
+        let mut pdu_specific =
+            bit_data[Self::PDU_SPECIFIC_START..Self::PDU_SPECIFIC_END].to_bitvec();
+        pdu_specific.reverse();
+
+        let pgn = Self {
+            extended_data_page: bit_data[Self::EDP_START as usize],
+            data_page: bit_data[Self::DP_START as usize],
+            pdu_format: pdu_format.load(),
+            pdu_specific: pdu_specific.load(),
+        };
+
+        Ok(pgn)
     }
 }
 
@@ -138,11 +163,10 @@ mod tests {
 
     #[test]
     fn test_try_from() {
-        let pgn_parsed = Pgn::try_from(0x00F04);
-        assert_eq!(pgn_parsed.is_ok(), true);
+        let pgn_parsed = Pgn::try_from(0x2E6BA).expect("Failed to parse PGN");
 
-        let pgn = Pgn::new(false, false, 0xF0, 0x04);
-        assert_eq!(pgn, pgn_parsed.unwrap());
+        let pgn = Pgn::new(true, false, 0xE6, 0xBA);
+        assert_eq!(pgn, pgn_parsed);
     }
 
     #[test]
