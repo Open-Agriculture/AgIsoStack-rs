@@ -53,6 +53,7 @@ impl ByteField for Address {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::j1939::Address;
 
