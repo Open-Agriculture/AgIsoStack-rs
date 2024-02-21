@@ -176,8 +176,8 @@ mod tests {
         );
     }
 
-    // not finished yet TODO!
-    //#[test]
+    /* not finished yet TODO!
+    #[test]
     fn test_try_from_u32_for_extended_id() {
         let id = ExtendedId::try_from(0x18A0F25).unwrap();
         assert_eq!(
@@ -205,5 +205,5 @@ mod tests {
                 Pgn::new(true, false, PduFormat::new(0x4C), PduSpecific::new(0x12)),
             )
         );
-    }
+    }*/
 }
