@@ -69,5 +69,8 @@ mod tests {
 
         let address = Address::NULL;
         assert!(address.is_null());
+
+        let address = Address::default();
+        assert!(address.is_null());
     }
 }
