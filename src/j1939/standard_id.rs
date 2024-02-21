@@ -90,6 +90,7 @@ impl From<StandardId> for [bool; 11] {
 #[cfg(test)]
 mod tests {
     use crate::j1939::{Address, Priority, StandardId};
+    use embedded_can::{Id as EmbeddedId, StandardId as EmbeddedStandardId};
 
     #[test]
     fn test_raw() {
@@ -101,5 +102,41 @@ mod tests {
 
         let id = StandardId::new(Priority::Zero, Address::new(0x00));
         assert_eq!(id.raw(), 0x000);
+    }
+
+    #[test]
+    fn test_raw_bits() {
+        let id = StandardId::new(Priority::Three, Address::new(0x0A));
+        assert_eq!(
+            id.raw_bits(),
+            [false, true, true, false, false, false, false, true, false, true, false]
+        );
+
+        let id = StandardId::new(Priority::Seven, Address::new(0x0F));
+        assert_eq!(
+            id.raw_bits(),
+            [true, true, true, false, false, false, false, true, true, true, true]
+        );
+
+        let id = StandardId::new(Priority::Zero, Address::new(0x00));
+        assert_eq!(
+            id.raw_bits(),
+            [false, false, false, false, false, false, false, false, false, false, false]
+        );
+    }
+
+    #[test]
+    fn test_from_standard_id_for_id() {
+        let id = StandardId::new(Priority::Three, Address::new(0x0A));
+        assert_eq!(
+            EmbeddedId::from(id),
+            EmbeddedId::Standard(EmbeddedStandardId::new(0x30A).unwrap())
+        );
+
+        let id = StandardId::new(Priority::Seven, Address::new(0x0F));
+        assert_eq!(
+            EmbeddedId::from(id),
+            EmbeddedId::Standard(EmbeddedStandardId::new(0x70F).unwrap())
+        );
     }
 }
