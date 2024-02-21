@@ -176,5 +176,34 @@ mod tests {
         );
     }
 
+    // not finished yet TODO!
+    //#[test]
+    fn test_try_from_u32_for_extended_id() {
+        let id = ExtendedId::try_from(0x18A0F25).unwrap();
+        assert_eq!(
+            id,
+            ExtendedId::new(
+                StandardId::new(Priority::Zero, Address::new(0x25)),
+                Pgn::new(false, true, PduFormat::new(0x8A), PduSpecific::new(0x0F)),
+            )
+        );
+
+        let id = ExtendedId::try_from(0x1D8A2FAF).unwrap();
+        assert_eq!(
+            id,
+            ExtendedId::new(
+                StandardId::new(Priority::Seven, Address::new(0xAF)),
+                Pgn::new(false, true, PduFormat::new(0x8A), PduSpecific::new(0x2F)),
+            )
+        );
+
+        let id = ExtendedId::try_from(0x24C1200).unwrap();
+        assert_eq!(
+            id,
+            ExtendedId::new(
+                StandardId::new(Priority::Zero, Address::new(0x00)),
+                Pgn::new(true, false, PduFormat::new(0x4C), PduSpecific::new(0x12)),
+            )
+        );
     }
 }
