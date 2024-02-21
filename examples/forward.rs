@@ -1,7 +1,8 @@
 // Copyright 2023 Raven Industries inc.
 
 use clap::Parser;
-use embedded_can::nb::Can;
+
+#[cfg(target_os = "unix")]
 use socketcan::{CanSocket, Socket};
 
 /// Forward CAN traffic from one interface to another
@@ -25,6 +26,16 @@ struct Options {
     pub output_interface: String,
 }
 
+fn open_socket_can_interface() -> (CanSocket, CanSocket) {
+    let mut input = CanSocket::open(&opts.input_interface)
+        .expect("The given input interface cannot be opened!");
+
+    let mut output = CanSocket::open(&opts.output_interface)
+        .expect("The given output interface cannot be opened!");
+
+    (input, output)
+}
+
 fn main() {
     let opts = Options::parse();
 
@@ -41,10 +52,7 @@ fn main() {
         opts.output_interface
     );
 
-    let mut input = CanSocket::open(&opts.input_interface)
-        .expect("The given input interface cannot be opened!");
-    let mut output = CanSocket::open(&opts.output_interface)
-        .expect("The given output interface cannot be opened!");
+    let (input, output) = open_can_interface();
 
     input
         .set_nonblocking(true)

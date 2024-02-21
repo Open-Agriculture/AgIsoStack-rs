@@ -2,7 +2,7 @@
 use std::time::Instant;
 
 use super::control_function::{AddressClaimingState, ControlFunction};
-use crate::j1939::{Address, ExtendedId, Frame, Pgn, Priority};
+use crate::j1939::{Address, ByteField, ExtendedId, Frame, Id, Pgn, Priority, StandardId};
 use crate::network_management::common_parameter_group_numbers::CommonParameterGroupNumbers;
 use crate::network_management::name::NAME;
 use std::cell::RefCell;
@@ -101,9 +101,8 @@ impl NetworkManager {
         let address_claim = <NAME as Into<u64>>::into(name).to_le_bytes().to_vec();
 
         let request_id = ExtendedId::new(
-            Priority::DEFAULT,
+            StandardId::new(Priority::Three, source_address),
             CommonParameterGroupNumbers::AddressClaim.get_pgn(),
-            source_address,
         );
         Frame::new(request_id, address_claim).unwrap()
     }
@@ -113,7 +112,7 @@ impl NetworkManager {
         let request = pgn_to_request.to_le_bytes().to_vec();
         let mut pgn = CommonParameterGroupNumbers::ParameterGroupNumberRequest.get_pgn();
         pgn.set_destination_address(Address::BROADCAST);
-        let request_id = ExtendedId::new(Priority::Three, pgn, Address::NULL);
+        let request_id = ExtendedId::new(StandardId::new(Priority::Three, Address::NULL), pgn);
         Frame::new(request_id, request).unwrap()
     }
 
@@ -152,9 +151,11 @@ impl NetworkManager {
                     self.get_control_function_address_by_name(destination.get_name()),
                 );
                 let message_id = ExtendedId::new(
-                    priority,
+                    StandardId::new(
+                        priority,
+                        self.get_control_function_address_by_name(source.get_name()),
+                    ),
                     pgn,
-                    self.get_control_function_address_by_name(source.get_name()),
                 );
 
                 self.enqueue_can_message(
@@ -244,55 +245,60 @@ impl NetworkManager {
             // Todo receive messages, need to generalize message handling
             let current_message = self.receive_message_queue.front().unwrap();
 
-            // Process address claims and requests to claim
-            if NAME::default() == NAME::default()
-            /*TODO!: Replaced following code line by upper NAME::default(). There needs to be another abstraction of ISO 11783 specific frames which includes the NAME*/
-            /*current_message.get_destination_name()*/
-            {
-                // Broadcast Message
-                if current_message.id().pgn().pdu_format()
-                    == CommonParameterGroupNumbers::AddressClaim
-                        .get_pgn()
-                        .pdu_format()
-                {
-                    // Todo
-                } else if current_message.id().pgn().pdu_format()
-                    == CommonParameterGroupNumbers::ParameterGroupNumberRequest
-                        .get_pgn()
-                        .pdu_format()
-                    && current_message.clone().data().len() >= 3
-                {
-                    let message_data = current_message.clone().data();
-                    let requested_pgn: u32 = (message_data[0] as u32)
-                        | ((message_data[1] as u32) << 8)
-                        | ((message_data[2] as u32) << 16);
-
-                    if requested_pgn
-                        == CommonParameterGroupNumbers::ParameterGroupNumberRequest as u32
+            match current_message.id() {
+                Id::Standard(_) => {}
+                Id::Extended(id) => {
+                    // Process address claims and requests to claim
+                    if NAME::default() == NAME::default()
+                    /*TODO!: Replaced following code line by upper NAME::default(). There needs to be another abstraction of ISO 11783 specific frames which includes the NAME*/
+                    /*current_message.get_destination_name()*/
                     {
-                        for internal_cf in &mut self.address_claim_state_machines {
-                            let mut address_claimer = internal_cf.borrow_mut();
-                            match *address_claimer {
-                                ControlFunction::Internal {
-                                    ref mut address_claim_data,
-                                } => {
-                                    if address_claim_data.get_state()
-                                        == AddressClaimingState::AddressClaimingComplete
-                                    {
-                                        address_claim_data.set_state(
-                                            AddressClaimingState::SendReclaimAddressOnRequest,
-                                        );
+                        // Broadcast Message
+                        if id.pgn().pdu_format()
+                            == CommonParameterGroupNumbers::AddressClaim
+                                .get_pgn()
+                                .pdu_format()
+                        {
+                            // Todo
+                        } else if id.pgn().pdu_format()
+                            == CommonParameterGroupNumbers::ParameterGroupNumberRequest
+                                .get_pgn()
+                                .pdu_format()
+                            && current_message.clone().data().len() >= 3
+                        {
+                            let message_data = current_message.clone().data();
+                            let requested_pgn: u32 = (message_data[0] as u32)
+                                | ((message_data[1] as u32) << 8)
+                                | ((message_data[2] as u32) << 16);
+
+                            if requested_pgn
+                                == CommonParameterGroupNumbers::ParameterGroupNumberRequest as u32
+                            {
+                                for internal_cf in &mut self.address_claim_state_machines {
+                                    let mut address_claimer = internal_cf.borrow_mut();
+                                    match *address_claimer {
+                                        ControlFunction::Internal {
+                                            ref mut address_claim_data,
+                                        } => {
+                                            if address_claim_data.get_state()
+                                                == AddressClaimingState::AddressClaimingComplete
+                                            {
+                                                address_claim_data.set_state(
+                                                    AddressClaimingState::SendReclaimAddressOnRequest,
+                                                );
+                                            }
+                                        }
+                                        ControlFunction::External { name: _ } => {}
                                     }
                                 }
-                                ControlFunction::External { name: _ } => {}
                             }
+                        } else {
+                            // Destination specific
                         }
-                    }
-                } else {
-                    // Destination specific
-                }
 
-                self.receive_message_queue.pop_front();
+                        self.receive_message_queue.pop_front();
+                    }
+                }
             }
         }
     }

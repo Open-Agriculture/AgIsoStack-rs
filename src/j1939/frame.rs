@@ -1,7 +1,5 @@
 // Copyright 2023 Raven Industries inc.
 use crate::j1939::id::Id;
-use crate::j1939::standard_id::StandardId;
-use crate::j1939::ExtendedId;
 use embedded_can::{Frame as EmbeddedFrame, Id as EmbeddedId};
 
 #[derive(Debug, Default)]
@@ -16,27 +14,14 @@ pub struct Frame {
 
 impl Frame {
     pub fn new(id: impl Into<EmbeddedId>, data: Vec<u8>) -> Option<Self> {
-        let frame_id: Id = match id.into() {
-            EmbeddedId::Standard(id) => StandardId::try_from(EmbeddedId::Standard(id))
-                .expect("Invalid standard ID")
-                .into(),
-            EmbeddedId::Extended(id) => ExtendedId::try_from(EmbeddedId::Extended(id))
-                .expect("Invalid extended ID")
-                .into(),
-        };
-
-        if frame_id {
-            return None;
-        }
-
         Some(Self {
-            id: parsed_id.unwrap(),
+            id: Id::try_from(id.into()).expect("Invalid J1939 ID"),
             data,
         })
     }
 
     #[inline]
-    pub fn id(&self) -> ExtendedId {
+    pub fn id(&self) -> Id {
         self.id
     }
 
@@ -51,23 +36,30 @@ impl EmbeddedFrame for Frame {
         Frame::new(id, data.to_vec())
     }
 
+    /// create a new remote frame
+    /// <div class="warning">
+    /// J1939 does not support remote frames (see J1939-21 5.4) so this is always [None]
+    /// </div>
     fn new_remote(_id: impl Into<EmbeddedId>, _dlc: usize) -> Option<Self> {
-        //J1939 does not support remote frames
         None
     }
 
     fn is_extended(&self) -> bool {
-        // J1939 only supports extended frames
-        true
+        match self.id {
+            Id::Standard(_) => false,
+            Id::Extended(_) => true,
+        }
     }
 
     fn is_standard(&self) -> bool {
-        // J1939 only supports extended frames
-        false
+        match self.id {
+            Id::Standard(_) => true,
+            Id::Extended(_) => false,
+        }
     }
 
     fn is_remote_frame(&self) -> bool {
-        // J1939 does not support remote frames
+        // J1939 does not support remote frames (see J1939-21 5.4)
         false
     }
 
@@ -77,7 +69,7 @@ impl EmbeddedFrame for Frame {
     }
 
     fn id(&self) -> EmbeddedId {
-        EmbeddedId::from(self.id)
+        self.id.into()
     }
 
     fn dlc(&self) -> usize {

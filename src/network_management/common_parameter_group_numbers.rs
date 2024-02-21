@@ -1,6 +1,6 @@
 // Copyright 2023 Raven Industries inc.
 
-use crate::j1939::Pgn;
+use crate::j1939::{PduFormat, PduSpecific, Pgn};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CommonParameterGroupNumbers {
@@ -11,9 +11,11 @@ pub enum CommonParameterGroupNumbers {
 impl CommonParameterGroupNumbers {
     pub fn get_pgn(&self) -> Pgn {
         match self {
-            CommonParameterGroupNumbers::AddressClaim => Pgn::new(false, false, 0xEE, 0x00),
+            CommonParameterGroupNumbers::AddressClaim => {
+                Pgn::new(false, false, PduFormat::new(0xEE), PduSpecific::new(0x00))
+            }
             CommonParameterGroupNumbers::ParameterGroupNumberRequest => {
-                Pgn::new(false, false, 0xEA, 0x00)
+                Pgn::new(false, false, PduFormat::new(0xEA), PduSpecific::new(0x00))
             }
         }
     }
