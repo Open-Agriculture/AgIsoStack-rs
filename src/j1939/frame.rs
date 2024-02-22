@@ -1,4 +1,10 @@
-// Copyright 2023 Raven Industries inc.
+/*
+Copyright 2023 Raven Industries inc.
+
+@author Jannes Brands
+@date 2024-02-22
+*/
+
 use crate::j1939::id::Id;
 use embedded_can::{Frame as EmbeddedFrame, Id as EmbeddedId};
 

@@ -1,4 +1,9 @@
-// Copyright 2023 Raven Industries inc.
+/*
+Copyright 2023 Raven Industries inc.
+
+@author Jannes Brands
+@date 2024-02-22
+*/
 use crate::j1939::byte_field::ByteField;
 use crate::j1939::id::{Id, ParseIdError};
 use crate::j1939::priority::Priority;
@@ -68,11 +73,12 @@ impl From<ExtendedId> for EmbeddedId {
     }
 }
 
-impl TryFrom<u32> for ExtendedId {
+impl TryFrom<[bool; 29]> for ExtendedId {
     type Error = ParseIdError;
 
-    fn try_from(raw_id: u32) -> Result<Self, Self::Error> {
-        let bit_data = raw_id.view_bits::<Msb0>().to_bitvec();
+    fn try_from(raw_bits: [bool; 29]) -> Result<Self, Self::Error> {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.extend(raw_bits.iter());
         let mut priority_bits =
             bit_data[ExtendedId::PRIORITY_START..ExtendedId::PRIORITY_END].to_bitvec();
         let mut pgn_bits = bit_data[ExtendedId::PGN_START..ExtendedId::PGN_END].to_bitvec();
@@ -99,6 +105,45 @@ impl TryFrom<u32> for ExtendedId {
             StandardId::new(priority.unwrap(), source_address),
             pgn.unwrap(),
         ))
+    }
+}
+
+impl TryFrom<u32> for ExtendedId {
+    type Error = ParseIdError;
+
+    fn try_from(raw_id: u32) -> Result<Self, Self::Error> {
+        let raw_id_bits = raw_id.view_bits::<Msb0>().to_bitvec();
+        Self::try_from([
+            raw_id_bits[3],
+            raw_id_bits[4],
+            raw_id_bits[5],
+            raw_id_bits[6],
+            raw_id_bits[7],
+            raw_id_bits[8],
+            raw_id_bits[9],
+            raw_id_bits[10],
+            raw_id_bits[11],
+            raw_id_bits[12],
+            raw_id_bits[13],
+            raw_id_bits[14],
+            raw_id_bits[15],
+            raw_id_bits[16],
+            raw_id_bits[17],
+            raw_id_bits[18],
+            raw_id_bits[19],
+            raw_id_bits[20],
+            raw_id_bits[21],
+            raw_id_bits[22],
+            raw_id_bits[23],
+            raw_id_bits[24],
+            raw_id_bits[25],
+            raw_id_bits[26],
+            raw_id_bits[27],
+            raw_id_bits[28],
+            raw_id_bits[29],
+            raw_id_bits[30],
+            raw_id_bits[31],
+        ])
     }
 }
 
@@ -176,7 +221,6 @@ mod tests {
         );
     }
 
-    /* not finished yet TODO!
     #[test]
     fn test_try_from_u32_for_extended_id() {
         let id = ExtendedId::try_from(0x18A0F25).unwrap();
@@ -205,5 +249,5 @@ mod tests {
                 Pgn::new(true, false, PduFormat::new(0x4C), PduSpecific::new(0x12)),
             )
         );
-    }*/
+    }
 }

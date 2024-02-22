@@ -1,3 +1,9 @@
+/*
+Copyright 2023 Raven Industries inc.
+
+@author Jannes Brands
+@date 2024-02-22
+*/
 use bitvec::field::BitField;
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;

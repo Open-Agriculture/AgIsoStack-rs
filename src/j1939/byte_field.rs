@@ -1,3 +1,10 @@
+/*
+Copyright 2023 Raven Industries inc.
+
+@author Jannes Brands
+@date 2024-02-22
+*/
+
 use bitvec::order::Msb0;
 use bitvec::view::BitView;
 

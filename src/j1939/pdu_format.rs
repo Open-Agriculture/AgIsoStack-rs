@@ -1,3 +1,9 @@
+/*
+Copyright 2023 Raven Industries inc.
+
+@author Jannes Brands
+@date 2024-02-22
+*/
 use crate::j1939::byte_field::ByteField;
 
 /// PDU format field defined in the PGN
