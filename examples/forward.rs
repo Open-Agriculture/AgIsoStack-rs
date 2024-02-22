@@ -64,9 +64,10 @@ fn main() {
             .expect("Could not set output bus to non-blocking!");
 
         loop {
-            match input.receive() {
+            match input.borrow().receive() {
                 Ok(frame) => {
                     output
+                        .borrow()
                         .transmit(&frame)
                         .expect("Could not forward received message!");
                 }
