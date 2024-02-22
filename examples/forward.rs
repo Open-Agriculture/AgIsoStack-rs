@@ -27,12 +27,12 @@ struct Options {
 }
 
 #[cfg(target_os = "linux")]
-fn open_can_interface() -> (CanSocket, CanSocket) {
-    let mut input = CanSocket::open(&opts.input_interface)
-        .expect("The given input interface cannot be opened!");
+fn open_can_interface(input_name: &str, output_name: &str) -> (CanSocket, CanSocket) {
+    let mut input =
+        CanSocket::open(input_name).expect("The given input interface cannot be opened!");
 
-    let mut output = CanSocket::open(&opts.output_interface)
-        .expect("The given output interface cannot be opened!");
+    let mut output =
+        CanSocket::open(output_name).expect("The given output interface cannot be opened!");
 
     (input, output)
 }
@@ -54,9 +54,8 @@ fn main() {
     );
 
     #[cfg(target_os = "linux")]
-    {
-        let (input, output) = open_can_interface();
-
+    |opts: Options| {
+        let (input, output) = open_can_interface(&opts.input_interface, &opts.output_interface);
         input
             .set_nonblocking(true)
             .expect("Could not set input bus to non-blocking!");
