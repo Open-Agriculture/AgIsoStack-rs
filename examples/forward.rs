@@ -1,9 +1,9 @@
 // Copyright 2023 Raven Industries inc.
 
-use std::sync::mpsc::channel;
-
-use ag_iso_stack::driver::{Driver, DriverReadError, Frame, SocketcanDriver};
 use clap::Parser;
+
+#[cfg(target_os = "linux")]
+use socketcan::{BlockingCan, CanSocket, Socket};
 
 /// Forward CAN traffic from one interface to another
 #[derive(Debug, Parser)]
@@ -16,22 +16,25 @@ struct Options {
     /// The interface to read traffic from
     ///
     /// Can be either a string interface name, or an integer interface index
-    #[clap(short, long, default_value_t = String::from("can0"))]
+    #[clap(short, long, default_value_t = String::from("vcan0"))]
     pub input_interface: String,
 
     /// The interface to write traffic to
     ///
     /// Can be either a string interface name, or an integer interface index
-    #[clap(short, long, default_value_t = String::from("can1"))]
+    #[clap(short, long, default_value_t = String::from("vcan1"))]
     pub output_interface: String,
 }
 
-fn create_driver(iface: &str) -> impl Driver {
-    if let Ok(index) = iface.parse::<u32>() {
-        SocketcanDriver::new_by_index(index)
-    } else {
-        SocketcanDriver::new_by_name(iface)
-    }
+#[cfg(target_os = "linux")]
+fn open_can_interface(input_name: &str, output_name: &str) -> (CanSocket, CanSocket) {
+    let mut input =
+        CanSocket::open(input_name).expect("The given input interface cannot be opened!");
+
+    let mut output =
+        CanSocket::open(output_name).expect("The given output interface cannot be opened!");
+
+    (input, output)
 }
 
 fn main() {
@@ -50,33 +53,26 @@ fn main() {
         opts.output_interface
     );
 
-    let mut input = create_driver(&opts.input_interface);
-    let mut output = create_driver(&opts.output_interface);
+    #[cfg(target_os = "linux")]
+    |opts: Options| {
+        let (input, output) = open_can_interface(&opts.input_interface, &opts.output_interface);
+        input
+            .set_nonblocking(true)
+            .expect("Could not set input bus to non-blocking!");
+        output
+            .set_nonblocking(true)
+            .expect("Could not set output bus to non-blocking!");
 
-    input.open().unwrap();
-    output.open().unwrap();
-
-    let (tx, rx) = channel();
-    ctrlc::set_handler(move || tx.send(true).unwrap()).unwrap();
-
-    loop {
-        if rx.try_recv().is_ok() {
-            break;
-        }
-
-        let mut frame = Frame::default();
-
-        match input.read_nonblocking(&mut frame) {
-            Ok(_) => {
-                tracing::info!("Read frame: {frame:?}");
-                tracing::info!("Attempting to write frame");
-                match output.write_nonblocking(&frame) {
-                    Ok(_) => tracing::info!("Wrote frame: {frame:?}"),
-                    Err(e) => tracing::info!("Failed to write frame: {e:?}"),
+        loop {
+            match input.borrow().receive() {
+                Ok(frame) => {
+                    output
+                        .borrow()
+                        .transmit(&frame)
+                        .expect("Could not forward received message!");
                 }
+                Err(_err) => continue,
             }
-            Err(DriverReadError::NoFrameReady) => {}
-            Err(e) => tracing::error!("Failed to read frame: {e:?}"),
         }
-    }
+    };
 }

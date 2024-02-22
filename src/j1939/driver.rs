@@ -1,16 +1,16 @@
 // Copyright 2023 Raven Industries inc.
-use crate::driver::Frame;
+use crate::j1939::Frame;
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DriverOpenError {
-    /// The driver failed to open with filesystem semantics
+    /// The j1939 failed to open with filesystem semantics
     IoError(std::io::Error),
 }
 
 impl std::fmt::Display for DriverOpenError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Failed to open driver: {:?}", self)
+        write!(f, "Failed to open j1939: {:?}", self)
     }
 }
 impl std::error::Error for DriverOpenError {
@@ -43,11 +43,11 @@ impl std::error::Error for DriverCloseError {}
 pub enum DriverReadError {
     /// There is no frame ready to be read
     NoFrameReady,
-    /// The driver has been closed
+    /// The j1939 has been closed
     DriverClosed,
-    /// The driver received an error frame
+    /// The j1939 received an error frame
     ErrorFrame(),
-    /// The driver failed to read with filesystem semantics
+    /// The j1939 failed to read with filesystem semantics
     IoError(std::io::Error),
 }
 
@@ -71,9 +71,9 @@ impl From<std::io::Error> for DriverReadError {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DriverWriteError {
-    /// The driver's internal buffer is full, or the driver is otherwise busy
+    /// The j1939's internal buffer is full, or the j1939 is otherwise busy
     NotReady,
-    /// The driver has been closed
+    /// The j1939 has been closed
     DriverClosed,
     /// Some fault with the CAN bus
     BusError(),
@@ -102,23 +102,23 @@ impl From<std::io::Error> for DriverWriteError {
 ///
 /// This layer is meant to abstract the hardware, and should not do its own queuing/buffering.
 ///
-/// This trait does _not_ define how to construct and configure a driver, as the details are likely
-/// to differ from driver to driver.
+/// This trait does _not_ define how to construct and configure a j1939, as the details are likely
+/// to differ from j1939 to j1939.
 pub trait Driver {
-    /// Determine whether the driver is connected and healthy
+    /// Determine whether the j1939 is connected and healthy
     fn is_valid(&self) -> bool;
 
-    /// Open the driver
+    /// Open the j1939
     ///
-    /// It is expected you must open the driver after creating it
+    /// It is expected you must open the j1939 after creating it
     fn open(&mut self) -> Result<(), DriverOpenError>;
 
-    /// Close the driver
+    /// Close the j1939
     ///
-    /// It is not necessary to close the driver before dropping it
+    /// It is not necessary to close the j1939 before dropping it
     fn close(&mut self) -> Result<(), DriverCloseError>;
 
-    /// Read a [Frame] from the driver, if possible
+    /// Read a [Frame] from the j1939, if possible
     ///
     /// This is a non-blocking read. If there is no frame ready to read, this function will return
     /// [DriverReadError::NoFrameReady].
@@ -127,9 +127,9 @@ pub trait Driver {
     /// each call, or to re-use memory.
     fn read_nonblocking(&mut self, frame: &mut Frame) -> Result<(), DriverReadError>;
 
-    /// Write a [Frame] to the driver, if possible
+    /// Write a [Frame] to the j1939, if possible
     ///
-    /// This is a non-blocking write. If the frame cannot be written because the driver's
+    /// This is a non-blocking write. If the frame cannot be written because the j1939's
     /// queue/buffer is full (for drivers like `socketcan` that do internal buffering), or if
     /// it's otherwise busy, this function will return [DriverWriteError::NotReady].
     ///

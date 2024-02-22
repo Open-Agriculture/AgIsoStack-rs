@@ -3,6 +3,6 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::module_inception)]
 
-pub mod driver;
+pub mod j1939;
 pub mod network_management;
 pub mod object_pool;
