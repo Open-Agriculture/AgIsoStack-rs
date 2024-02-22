@@ -55,8 +55,7 @@ fn main() {
 
     #[cfg(target_os = "linux")]
     |opts: Options| {
-        let (mut input, mut output) =
-            open_can_interface(&opts.input_interface, &opts.output_interface);
+        let (input, output) = open_can_interface(&opts.input_interface, &opts.output_interface);
         input
             .set_nonblocking(true)
             .expect("Could not set input bus to non-blocking!");
