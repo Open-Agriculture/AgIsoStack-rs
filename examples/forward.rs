@@ -3,7 +3,7 @@
 use clap::Parser;
 
 #[cfg(target_os = "linux")]
-use socketcan::{CanSocket, Socket};
+use socketcan::{BlockingCan, CanSocket, NonBlockingCan, Socket};
 
 /// Forward CAN traffic from one interface to another
 #[derive(Debug, Parser)]
