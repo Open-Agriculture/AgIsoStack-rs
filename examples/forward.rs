@@ -2,7 +2,7 @@
 
 use clap::Parser;
 
-#[cfg(target_os = "unix")]
+#[cfg(target_os = "linux")]
 use socketcan::{CanSocket, Socket};
 
 /// Forward CAN traffic from one interface to another
@@ -26,7 +26,8 @@ struct Options {
     pub output_interface: String,
 }
 
-fn open_socket_can_interface() -> (CanSocket, CanSocket) {
+#[cfg(target_os = "linux")]
+fn open_can_interface() -> (CanSocket, CanSocket) {
     let mut input = CanSocket::open(&opts.input_interface)
         .expect("The given input interface cannot be opened!");
 
@@ -52,23 +53,26 @@ fn main() {
         opts.output_interface
     );
 
-    let (input, output) = open_can_interface();
+    #[cfg(target_os = "linux")]
+    {
+        let (input, output) = open_can_interface();
 
-    input
-        .set_nonblocking(true)
-        .expect("Could not set input bus to non-blocking!");
-    output
-        .set_nonblocking(true)
-        .expect("Could not set output bus to non-blocking!");
+        input
+            .set_nonblocking(true)
+            .expect("Could not set input bus to non-blocking!");
+        output
+            .set_nonblocking(true)
+            .expect("Could not set output bus to non-blocking!");
 
-    loop {
-        match input.receive() {
-            Ok(frame) => {
-                output
-                    .transmit(&frame)
-                    .expect("Could not forward received message!");
+        loop {
+            match input.receive() {
+                Ok(frame) => {
+                    output
+                        .transmit(&frame)
+                        .expect("Could not forward received message!");
+                }
+                Err(_err) => continue,
             }
-            Err(_err) => continue,
         }
     }
 }
