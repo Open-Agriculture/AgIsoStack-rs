@@ -11,9 +11,10 @@ use crate::object_pool::object_attributes::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::{Colour, ObjectType};
 
+use super::object_attributes::{DataCodeType, PictureGraphicFormat};
 use super::object_id::NullableObjectId;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Object {
     WorkingSet(WorkingSet),
     DataMask(DataMask),
@@ -118,6 +119,60 @@ impl Object {
             Object::GraphicData(o) => o.id,
             Object::WorkingSetSpecialControls(o) => o.id,
             Object::ScaledGraphic(o) => o.id,
+        }
+    }
+
+    pub fn mut_id(&mut self) -> &mut ObjectId {
+        match self {
+            Object::WorkingSet(o) => &mut o.id,
+            Object::DataMask(o) => &mut o.id,
+            Object::AlarmMask(o) => &mut o.id,
+            Object::Container(o) => &mut o.id,
+            Object::SoftKeyMask(o) => &mut o.id,
+            Object::Key(o) => &mut o.id,
+            Object::Button(o) => &mut o.id,
+            Object::InputBoolean(o) => &mut o.id,
+            Object::InputString(o) => &mut o.id,
+            Object::InputNumber(o) => &mut o.id,
+            Object::InputList(o) => &mut o.id,
+            Object::OutputString(o) => &mut o.id,
+            Object::OutputNumber(o) => &mut o.id,
+            Object::OutputList(o) => &mut o.id,
+            Object::OutputLine(o) => &mut o.id,
+            Object::OutputRectangle(o) => &mut o.id,
+            Object::OutputEllipse(o) => &mut o.id,
+            Object::OutputPolygon(o) => &mut o.id,
+            Object::OutputMeter(o) => &mut o.id,
+            Object::OutputLinearBarGraph(o) => &mut o.id,
+            Object::OutputArchedBarGraph(o) => &mut o.id,
+            Object::PictureGraphic(o) => &mut o.id,
+            Object::NumberVariable(o) => &mut o.id,
+            Object::StringVariable(o) => &mut o.id,
+            Object::FontAttributes(o) => &mut o.id,
+            Object::LineAttributes(o) => &mut o.id,
+            Object::FillAttributes(o) => &mut o.id,
+            Object::InputAttributes(o) => &mut o.id,
+            Object::ObjectPointer(o) => &mut o.id,
+            Object::Macro(o) => &mut o.id,
+            Object::AuxiliaryFunctionType1(o) => &mut o.id,
+            Object::AuxiliaryInputType1(o) => &mut o.id,
+            Object::AuxiliaryFunctionType2(o) => &mut o.id,
+            Object::AuxiliaryInputType2(o) => &mut o.id,
+            Object::AuxiliaryControlDesignatorType2(o) => &mut o.id,
+            Object::WindowMask(o) => &mut o.id,
+            Object::KeyGroup(o) => &mut o.id,
+            Object::GraphicsContext(o) => &mut o.id,
+            Object::ExtendedInputAttributes(o) => &mut o.id,
+            Object::ColourMap(o) => &mut o.id,
+            Object::ObjectLabelReferenceList(o) => &mut o.id,
+            Object::ExternalObjectDefinition(o) => &mut o.id,
+            Object::ExternalReferenceName(o) => &mut o.id,
+            Object::ExternalObjectPointer(o) => &mut o.id,
+            Object::Animation(o) => &mut o.id,
+            Object::ColourPalette(o) => &mut o.id,
+            Object::GraphicData(o) => &mut o.id,
+            Object::WorkingSetSpecialControls(o) => &mut o.id,
+            Object::ScaledGraphic(o) => &mut o.id,
         }
     }
 
@@ -341,12 +396,41 @@ impl Object {
 
         refs
     }
+
+    pub fn as_sized_object(&self) -> Option<&dyn SizedObject> {
+        match self {
+            Object::Container(o) => Some(o),
+            Object::Button(o) => Some(o),
+            Object::InputBoolean(o) => Some(o),
+            Object::InputString(o) => Some(o),
+            Object::InputNumber(o) => Some(o),
+            Object::InputList(o) => Some(o),
+            Object::OutputString(o) => Some(o),
+            Object::OutputNumber(o) => Some(o),
+            Object::OutputList(o) => Some(o),
+            Object::OutputLine(o) => Some(o),
+            Object::OutputRectangle(o) => Some(o),
+            Object::OutputEllipse(o) => Some(o),
+            Object::OutputPolygon(o) => Some(o),
+            Object::OutputMeter(o) => Some(o),
+            Object::OutputLinearBarGraph(o) => Some(o),
+            Object::OutputArchedBarGraph(o) => Some(o),
+            Object::PictureGraphic(o) => Some(o),
+            Object::ScaledGraphic(o) => Some(o),
+            _ => None,
+        }
+    }
 }
 
-#[derive(Debug, PartialEq)]
+pub trait SizedObject {
+    fn width(&self) -> u16;
+    fn height(&self) -> u16;
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct WorkingSet {
     pub id: ObjectId,
-    pub background_colour: Colour,
+    pub background_colour: u8,
     pub selectable: bool,
     pub active_mask: ObjectId,
     pub object_refs: Vec<ObjectRef>,
@@ -354,7 +438,7 @@ pub struct WorkingSet {
     pub language_codes: Vec<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct DataMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -363,7 +447,7 @@ pub struct DataMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AlarmMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -374,7 +458,7 @@ pub struct AlarmMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Container {
     pub id: ObjectId,
     pub width: u16,
@@ -384,7 +468,17 @@ pub struct Container {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+impl SizedObject for Container {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct SoftKeyMask {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -392,7 +486,7 @@ pub struct SoftKeyMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Key {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -401,7 +495,7 @@ pub struct Key {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Button {
     pub id: ObjectId,
     pub width: u16,
@@ -414,7 +508,17 @@ pub struct Button {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+impl SizedObject for Button {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct InputBoolean {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -426,7 +530,17 @@ pub struct InputBoolean {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+impl SizedObject for InputBoolean {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.width
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct InputString {
     pub id: ObjectId,
     pub width: u16,
@@ -440,6 +554,16 @@ pub struct InputString {
     pub value: String,
     pub enabled: bool,
     pub macro_refs: Vec<MacroRef>,
+}
+
+impl SizedObject for InputString {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -463,6 +587,16 @@ pub struct InputNumber {
     pub macro_refs: Vec<MacroRef>,
 }
 
+impl SizedObject for InputNumber {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct InputList {
     pub id: ObjectId,
@@ -473,6 +607,16 @@ pub struct InputList {
     pub options: InputListOptions,
     pub list_items: Vec<NullableObjectId>,
     pub macro_refs: Vec<MacroRef>,
+}
+
+impl SizedObject for InputList {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -489,7 +633,17 @@ pub struct OutputString {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, PartialEq)]
+impl SizedObject for OutputString {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputNumber {
     pub id: ObjectId,
     pub width: u16,
@@ -507,6 +661,16 @@ pub struct OutputNumber {
     pub macro_refs: Vec<MacroRef>,
 }
 
+impl SizedObject for OutputNumber {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct OutputList {
     pub id: ObjectId,
@@ -516,6 +680,16 @@ pub struct OutputList {
     pub value: u8,
     pub list_items: Vec<NullableObjectId>,
     pub macro_refs: Vec<MacroRef>,
+}
+
+impl SizedObject for OutputList {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -528,7 +702,17 @@ pub struct OutputLine {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputLine {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputRectangle {
     pub id: ObjectId,
     pub line_attributes: ObjectId,
@@ -539,7 +723,17 @@ pub struct OutputRectangle {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputRectangle {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputEllipse {
     pub id: ObjectId,
     pub line_attributes: ObjectId,
@@ -552,7 +746,17 @@ pub struct OutputEllipse {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputEllipse {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputPolygon {
     pub id: ObjectId,
     pub width: u16,
@@ -564,7 +768,17 @@ pub struct OutputPolygon {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputPolygon {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputMeter {
     pub id: ObjectId,
     pub width: u16,
@@ -582,7 +796,17 @@ pub struct OutputMeter {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl SizedObject for OutputMeter {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.width
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct OutputLinearBarGraph {
     pub id: ObjectId,
     pub width: u16,
@@ -600,7 +824,17 @@ pub struct OutputLinearBarGraph {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputLinearBarGraph {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct OutputArchedBarGraph {
     pub id: ObjectId,
     pub width: u16,
@@ -620,32 +854,89 @@ pub struct OutputArchedBarGraph {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for OutputArchedBarGraph {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct PictureGraphic {
     pub id: ObjectId,
     pub width: u16,
     pub actual_width: u16,
     pub actual_height: u16,
-    pub format: u8,
+    pub format: PictureGraphicFormat,
     pub options: PictureGraphicOptions,
     pub transparency_colour: u8,
     pub data: Vec<u8>,
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl PictureGraphic {
+    pub fn data_as_raw_encoded(&self) -> Vec<u8> {
+        match self.options.data_code_type {
+            DataCodeType::Raw => self.data.clone(),
+            DataCodeType::RunLength => {
+                let mut raw_data = vec![];
+                let mut i = 0;
+                while i < self.data.len() {
+                    let count = self.data[i] as usize;
+                    let value = self.data[i + 1];
+                    raw_data.extend(vec![value; count]);
+                    i += 2;
+                }
+                raw_data
+            }
+        }
+    }
+
+    pub fn data_as_run_length_encoded(&self) -> Vec<u8> {
+        match self.options.data_code_type {
+            DataCodeType::Raw => {
+                let mut run_length_data = vec![];
+                let mut i = 0;
+                while i < self.data.len() {
+                    let value = self.data[i];
+                    let count = self.data[i..].iter().take_while(|&&x| x == value).count();
+                    run_length_data.push(count as u8);
+                    run_length_data.push(value);
+                    i += count;
+                }
+                run_length_data
+            }
+            DataCodeType::RunLength => self.data.clone(),
+        }
+    }
+}
+
+impl SizedObject for PictureGraphic {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        (self.actual_height as f32 * (self.width as f32 / self.actual_width as f32)) as u16
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct NumberVariable {
     pub id: ObjectId,
     pub value: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct StringVariable {
     pub id: ObjectId,
     pub value: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FontAttributes {
     pub id: ObjectId,
     pub font_colour: u8,
@@ -655,7 +946,7 @@ pub struct FontAttributes {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct LineAttributes {
     pub id: ObjectId,
     pub line_colour: u8,
@@ -664,7 +955,7 @@ pub struct LineAttributes {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FillAttributes {
     pub id: ObjectId,
     pub fill_type: u8,
@@ -673,7 +964,7 @@ pub struct FillAttributes {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct InputAttributes {
     pub id: ObjectId,
     pub validation_type: u8,
@@ -681,7 +972,7 @@ pub struct InputAttributes {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ValidationType {
     ValidCharacters,
     InvalidCharacters,
@@ -706,38 +997,38 @@ impl From<u8> for ValidationType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CharacterRange {
     pub first_character: u16,
     pub last_character: u16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CodePlane {
     pub number: u8,
     pub character_ranges: Vec<CharacterRange>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExtendedInputAttributes {
     pub id: ObjectId,
     pub validation_type: ValidationType,
     pub code_planes: Vec<CodePlane>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectPointer {
     pub id: ObjectId,
     pub value: NullableObjectId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Macro {
     pub id: ObjectId,
     pub commands: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AuxiliaryFunctionType1 {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -745,7 +1036,7 @@ pub struct AuxiliaryFunctionType1 {
     pub object_refs: Vec<ObjectRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AuxiliaryInputType1 {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -754,7 +1045,7 @@ pub struct AuxiliaryInputType1 {
     pub object_refs: Vec<ObjectRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AuxiliaryFunctionType2 {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -762,7 +1053,7 @@ pub struct AuxiliaryFunctionType2 {
     pub object_refs: Vec<ObjectRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AuxiliaryInputType2 {
     pub id: ObjectId,
     pub background_colour: u8,
@@ -770,14 +1061,14 @@ pub struct AuxiliaryInputType2 {
     pub object_refs: Vec<ObjectRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AuxiliaryControlDesignatorType2 {
     pub id: ObjectId,
     pub pointer_type: u8,
     pub auxiliary_object_id: ObjectId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ColourMap {
     pub id: ObjectId,
     pub colour_map: Vec<u8>,
@@ -805,6 +1096,16 @@ pub struct GraphicsContext {
     pub transparency_colour: u8,
 }
 
+impl SizedObject for GraphicsContext {
+    fn width(&self) -> u16 {
+        self.viewport_width
+    }
+
+    fn height(&self) -> u16 {
+        self.viewport_height
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct WindowMask {
     pub id: ObjectId,
@@ -820,7 +1121,7 @@ pub struct WindowMask {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct KeyGroup {
     pub id: ObjectId,
     pub options: KeyGroupOptions,
@@ -830,7 +1131,7 @@ pub struct KeyGroup {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectLabelReferenceList {
     pub id: ObjectId,
     pub object_labels: Vec<ObjectLabel>,
@@ -844,14 +1145,14 @@ pub struct ExternalObjectDefinition {
     pub objects: Vec<NullableObjectId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExternalReferenceName {
     pub id: ObjectId,
     pub options: ExternalReferenceNameOptions,
     pub name: NAME,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExternalObjectPointer {
     pub id: ObjectId,
     pub default_object_id: NullableObjectId,
@@ -859,7 +1160,7 @@ pub struct ExternalObjectPointer {
     pub external_object_id: NullableObjectId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Animation {
     pub id: ObjectId,
     pub width: u16,
@@ -875,21 +1176,31 @@ pub struct Animation {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for Animation {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct ColourPalette {
     pub id: ObjectId,
     pub options: ColourPaletteOptions,
     pub colours: Vec<Colour>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GraphicData {
     pub id: ObjectId,
     pub format: u8,
     pub data: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ScaledGraphic {
     pub id: ObjectId,
     pub width: u16,
@@ -900,7 +1211,17 @@ pub struct ScaledGraphic {
     pub macro_refs: Vec<MacroRef>,
 }
 
-#[derive(Debug)]
+impl SizedObject for ScaledGraphic {
+    fn width(&self) -> u16 {
+        self.width
+    }
+
+    fn height(&self) -> u16 {
+        self.height
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct WorkingSetSpecialControls {
     pub id: ObjectId,
     pub id_of_colour_map: NullableObjectId,

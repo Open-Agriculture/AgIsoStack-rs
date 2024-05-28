@@ -77,7 +77,7 @@ impl Object {
     ) -> Result<Vec<ObjectId>, ParseError> {
         let mut objs = Vec::new();
         for _ in 0..nr_of_objects {
-            objs.push(Self::read_u16(data)?.try_into()?);
+            objs.push(Self::read_u16(data)?.clamp(0, u16::MAX - 1).try_into()?);
         }
         Ok(objs)
     }
@@ -116,7 +116,7 @@ impl Object {
         let mut refs = Vec::new();
         for _ in 0..nr_of_macros {
             refs.push(MacroRef {
-                event_id: Self::read_u8(data)?,
+                event_id: Self::read_u8(data)?.into(),
                 macro_id: Self::read_u8(data)?,
             })
         }
@@ -375,7 +375,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = DataMask {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             soft_key_mask: Self::read_u16(data)?.into(),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -395,7 +395,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = AlarmMask {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             soft_key_mask: Self::read_u16(data)?.into(),
             priority: Self::read_u8(data)?,
             acoustic_signal: Self::read_u8(data)?,
@@ -438,7 +438,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = SoftKeyMask {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             objects: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -454,7 +454,7 @@ impl Object {
     fn read_key(id: ObjectId, data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
         let mut o = Key {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             key_code: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -473,8 +473,8 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?,
-            border_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
+            border_colour: Self::read_u8(data)?.into(),
             key_code: Self::read_u8(data)?,
             options: Self::read_u8(data)?.into(),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -495,7 +495,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = InputBoolean {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             width: Self::read_u16(data)?,
             foreground_colour: Self::read_u16(data)?.try_into()?,
             variable_reference: Self::read_u16(data)?.into(),
@@ -518,7 +518,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             font_attributes: Self::read_u16(data)?.try_into()?,
             input_attributes: Self::read_u16(data)?.into(),
             options: Self::read_u8(data)?.into(),
@@ -543,7 +543,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
@@ -598,7 +598,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
@@ -621,7 +621,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             font_attributes: Self::read_u16(data)?.try_into()?,
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
@@ -731,9 +731,9 @@ impl Object {
         let mut o = OutputMeter {
             id,
             width: Self::read_u16(data)?,
-            needle_colour: Self::read_u8(data)?,
-            border_colour: Self::read_u8(data)?,
-            arc_and_tick_colour: Self::read_u8(data)?,
+            needle_colour: Self::read_u8(data)?.into(),
+            border_colour: Self::read_u8(data)?.into(),
+            arc_and_tick_colour: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
             nr_of_ticks: Self::read_u8(data)?,
             start_angle: Self::read_u8(data)?,
@@ -759,8 +759,8 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            colour: Self::read_u8(data)?,
-            target_line_colour: Self::read_u8(data)?,
+            colour: Self::read_u8(data)?.into(),
+            target_line_colour: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
             nr_of_ticks: Self::read_u8(data)?,
             min_value: Self::read_u16(data)?,
@@ -786,8 +786,8 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            colour: Self::read_u8(data)?,
-            target_line_colour: Self::read_u8(data)?,
+            colour: Self::read_u8(data)?.into(),
+            target_line_colour: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
             start_angle: Self::read_u8(data)?,
             end_angle: Self::read_u8(data)?,
@@ -816,16 +816,19 @@ impl Object {
             width: Self::read_u16(data)?,
             actual_width: Self::read_u16(data)?,
             actual_height: Self::read_u16(data)?,
-            format: Self::read_u8(data)?,
+            format: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
-            transparency_colour: Self::read_u8(data)?,
-            data: Vec::with_capacity(Self::read_u32(data)? as usize),
-            macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            transparency_colour: Self::read_u8(data)?.into(),
+            data: Vec::new(),
+            macro_refs: Vec::new(),
         };
 
-        o.data.extend(Self::read_bytes(data, o.data.capacity())?);
+        let data_len = Self::read_u32(data)? as usize;
+        let macro_refs_len = Self::read_u8(data)? as usize;
+
+        o.data.extend(Self::read_bytes(data, data_len)?);
         o.macro_refs
-            .extend(Self::read_macro_refs(data, o.macro_refs.capacity())?);
+            .extend(Self::read_macro_refs(data, macro_refs_len)?);
 
         Ok(Object::PictureGraphic(o))
     }
@@ -860,7 +863,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = FontAttributes {
             id,
-            font_colour: Self::read_u8(data)?,
+            font_colour: Self::read_u8(data)?.into(),
             font_size: Self::read_u8(data)?,
             font_type: Self::read_u8(data)?,
             font_style: Self::read_u8(data)?,
@@ -879,7 +882,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = LineAttributes {
             id,
-            line_colour: Self::read_u8(data)?,
+            line_colour: Self::read_u8(data)?.into(),
             line_width: Self::read_u8(data)?,
             line_art: Self::read_u16(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -898,7 +901,7 @@ impl Object {
         let mut o = FillAttributes {
             id,
             fill_type: Self::read_u8(data)?,
-            fill_colour: Self::read_u8(data)?,
+            fill_colour: Self::read_u8(data)?.into(),
             fill_pattern: Self::read_u16(data)?.into(),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -956,7 +959,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType1 {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             function_type: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -973,7 +976,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryInputType1 {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             function_type: Self::read_u8(data)?,
             input_id: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -991,7 +994,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryFunctionType2 {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             function_attributes: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -1008,7 +1011,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = AuxiliaryInputType2 {
             id,
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             function_attributes: Self::read_u8(data)?,
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -1040,7 +1043,7 @@ impl Object {
             id,
             cell_format: Self::read_u16(data)?.into(),
             window_type: Self::read_u8(data)?.into(),
-            background_colour: Self::read_u8(data)?,
+            background_colour: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
             name: Self::read_u16(data)?.try_into()?,
             window_title: Self::read_u16(data)?.into(),
@@ -1096,14 +1099,14 @@ impl Object {
             viewport_zoom: Self::read_f32(data)?,
             graphics_cursor_x: Self::read_i16(data)?,
             graphics_cursor_y: Self::read_i16(data)?,
-            foreground_colour: Self::read_u8(data)?,
-            background_colour: Self::read_u8(data)?,
+            foreground_colour: Self::read_u8(data)?.into(),
+            background_colour: Self::read_u8(data)?.into(),
             font_attributes_object: Self::read_u16(data)?.into(),
             line_attributes_object: Self::read_u16(data)?.into(),
             fill_attributes_object: Self::read_u16(data)?.into(),
             format: Self::read_u8(data)?.into(),
             options: Self::read_u8(data)?.into(),
-            transparency_colour: Self::read_u8(data)?,
+            transparency_colour: Self::read_u8(data)?.into(),
         };
         Ok(Object::GraphicsContext(o))
     }

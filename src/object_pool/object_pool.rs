@@ -7,16 +7,13 @@ use crate::object_pool::object::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::vt_version::VtVersion;
 use crate::object_pool::ObjectType;
-use core::cell::Cell;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ObjectPool {
     objects: Vec<Object>,
     colour_map: [u8; 256],
     colour_palette: [Colour; 256],
     _supported_vt_version: VtVersion,
-
-    size_cache: Cell<Option<usize>>,
 }
 
 impl ObjectPool {
@@ -32,16 +29,11 @@ impl ObjectPool {
             colour_map,
             colour_palette: Colour::COLOUR_PALETTE,
             _supported_vt_version: VtVersion::default(),
-
-            size_cache: Cell::new(None),
         }
     }
 
     pub fn size(&self) -> usize {
-        if self.size_cache.get().is_none() {
-            self.size_cache.set(Some(self.as_iop().len()));
-        }
-        self.size_cache.get().unwrap_or_default()
+        self.objects.len()
     }
 
     ///
@@ -112,8 +104,16 @@ impl ObjectPool {
         self.objects.push(obj);
     }
 
+    pub fn remove(&mut self, id: ObjectId) {
+        self.objects.retain(|x| x.id() != id);
+    }
+
     pub fn object_by_id(&self, id: ObjectId) -> Option<&Object> {
         self.objects.iter().find(|&o| o.id() == id)
+    }
+
+    pub fn object_mut_by_id(&mut self, id: ObjectId) -> Option<&mut Object> {
+        self.objects.iter_mut().find(|o| o.id() == id)
     }
 
     pub fn objects_by_type(&self, object_type: ObjectType) -> Vec<&Object> {
@@ -121,6 +121,24 @@ impl ObjectPool {
             .iter()
             .filter(|&o| o.object_type() == object_type)
             .collect()
+    }
+
+    pub fn objects_by_types(&self, object_types: &[ObjectType]) -> Vec<&Object> {
+        self.objects
+            .iter()
+            .filter(|&o| object_types.contains(&o.object_type()))
+            .collect()
+    }
+
+    pub fn parent_objects(&self, id: ObjectId) -> Vec<&Object> {
+        self.objects
+            .iter()
+            .filter(|&o| o.referenced_objects().contains(&id))
+            .collect()
+    }
+
+    pub fn objects(&self) -> &[Object] {
+        &self.objects
     }
 
     // Get objects by type
@@ -287,11 +305,111 @@ impl ObjectPool {
     pub fn color_by_index(&self, index: u8) -> Colour {
         self.colour_palette[self.colour_map[index as usize] as usize]
     }
+
+    pub fn color_to_index(&self, color: Colour) -> Option<u8> {
+        self.colour_map
+            .iter()
+            .find(|&&c| self.colour_palette[c as usize] == color)
+            .map(|&c| c)
+    }
+
+    ///
+    /// Returns the needed width and height of the object to fit its content.
+    ///
+    pub fn content_size(&self, object: &Object) -> (u16, u16) {
+        // If the object is a sized object, return its size
+        if let Some(sized) = object.as_sized_object() {
+            return (sized.width(), sized.height());
+        }
+
+        // Some special cases where the content is not an object ref
+        match object {
+            Object::SoftKeyMask(o) => {
+                let mut width = 0;
+                let mut height = 0;
+                for object_id in o.objects.iter() {
+                    if let Some(object) = self.object_by_id(*object_id) {
+                        let (object_width, object_height) = self.content_size(object);
+                        width = width.max(object_width);
+                        height = height.max(object_height);
+                    }
+                }
+                return (width, height);
+            }
+            Object::ObjectPointer(o) => {
+                if let Some(id) = o.value.into() {
+                    if let Some(object) = self.object_by_id(id) {
+                        return self.content_size(object);
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        // Otherwise, return the largest x and y reached by one of the object refs
+        let object_refs = match object {
+            Object::WorkingSet(o) => o.object_refs.iter(),
+            Object::DataMask(o) => o.object_refs.iter(),
+            Object::AlarmMask(o) => o.object_refs.iter(),
+            Object::Key(o) => o.object_refs.iter(),
+            Object::AuxiliaryFunctionType1(o) => o.object_refs.iter(),
+            Object::AuxiliaryInputType1(o) => o.object_refs.iter(),
+            Object::AuxiliaryFunctionType2(o) => o.object_refs.iter(),
+            Object::AuxiliaryInputType2(o) => o.object_refs.iter(),
+            _ => return (0, 0),
+        };
+
+        let mut width = 0;
+        let mut height = 0;
+        for object_ref in object_refs {
+            if let Some(object) = self.object_by_id(object_ref.id) {
+                let (object_width, object_height) = self.content_size(object);
+                width = width.max(object_width as i16 + object_ref.offset.x);
+                height = height.max(object_height as i16 + object_ref.offset.y);
+            }
+        }
+        (width.max(0) as u16, height.max(0) as u16)
+    }
+
+    ///
+    /// Calculates the minimum size for all data masks and keys in soft key masks
+    ///
+    pub fn get_minimum_mask_sizes(&self) -> (u16, (u16, u16)) {
+        let mut mask_size = 0;
+        let mut soft_key_size = (0, 0);
+
+        for mask in self.objects_by_types(&[ObjectType::DataMask, ObjectType::AlarmMask]) {
+            let size = self.content_size(mask);
+            mask_size = mask_size.max(size.0.max(size.1));
+
+            let soft_key_mask_id = match mask {
+                Object::DataMask(o) => o.soft_key_mask.0,
+                Object::AlarmMask(o) => o.soft_key_mask.0,
+                _ => None,
+            };
+            if let Some(soft_key_mask_id) = soft_key_mask_id {
+                if let Some(soft_key_mask) = self.object_by_id(soft_key_mask_id) {
+                    soft_key_size = soft_key_size.max(self.content_size(soft_key_mask));
+                }
+            }
+        }
+
+        (mask_size, soft_key_size)
+    }
 }
 
 impl Default for ObjectPool {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl IntoIterator for ObjectPool {
+    type Item = Object;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.objects.into_iter()
     }
 }
 

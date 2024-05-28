@@ -7,7 +7,7 @@ pub mod object_attributes;
 mod object_id;
 mod object_pool;
 mod object_type;
-mod vt_version;
+pub mod vt_version;
 
 use crate::network_management::name::NAME;
 

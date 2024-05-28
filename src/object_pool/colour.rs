@@ -14,13 +14,7 @@ impl Colour {
     }
 
     pub fn new_by_rgb(r: u8, g: u8, b: u8) -> Self {
-        for colour in Colour::COLOUR_PALETTE.iter() {
-            if colour.r == r && colour.g == g && colour.b == b {
-                return *colour;
-            }
-        }
-
-        Colour::BLACK
+        Colour::COLOUR_PALETTE[16 + (r * 36 + g * 6 + b) as usize]
     }
 
     pub fn new_by_rgba(r: u8, g: u8, b: u8, _a: u8) -> Self {

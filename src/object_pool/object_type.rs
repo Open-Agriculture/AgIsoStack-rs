@@ -168,3 +168,15 @@ impl From<ObjectType> for u8 {
         }
     }
 }
+
+impl ObjectType {
+    pub fn values() -> Vec<ObjectType> {
+        let mut values = Vec::new();
+        for idx in u8::MIN..=u8::MAX {
+            if let Ok(obj_type) = ObjectType::try_from(idx) {
+                values.push(obj_type);
+            }
+        }
+        values
+    }
+}

@@ -308,6 +308,7 @@ impl Object {
         Self::write_u8(data, o.options);
         Self::write_u16(data, o.variable_reference);
         Self::write_u8(data, o.justification);
+        Self::write_u8(data, o.value.len() as u8);
         Self::write_string(data, &o.value);
         Self::write_u8(data, o.enabled);
         Self::write_u8(data, o.macro_refs.len() as u8);
@@ -518,6 +519,7 @@ impl Object {
     fn write_string_variable(data: &mut Vec<u8>, o: &StringVariable) {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::StringVariable);
+        Self::write_u16(data, o.value.len() as u16);
         Self::write_string(data, &o.value);
     }
     fn write_font_attributes(data: &mut Vec<u8>, o: &FontAttributes) {
@@ -555,6 +557,7 @@ impl Object {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::InputAttributes);
         Self::write_u8(data, o.validation_type);
+        Self::write_u8(data, o.validation_string.len() as u8);
         Self::write_string(data, &o.validation_string);
         Self::write_u8(data, o.macro_refs.len() as u8);
 

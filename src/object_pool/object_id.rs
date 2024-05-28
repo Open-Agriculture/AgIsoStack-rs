@@ -15,6 +15,19 @@ impl ObjectId {
             Ok(ObjectId { id })
         }
     }
+
+    pub fn value(&self) -> u16 {
+        self.id
+    }
+
+    pub fn set_value(&mut self, id: u16) -> Result<(), ParseError> {
+        if id == Self::NULL.id {
+            Err(ParseError::UnexpectedNullObjectId)
+        } else {
+            self.id = id;
+            Ok(())
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

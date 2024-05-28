@@ -39,7 +39,7 @@ impl From<u8> for WindowType {
 
 impl From<WindowType> for u8 {
     fn from(value: WindowType) -> Self {
-        value.into()
+        value as u8
     }
 }
 
@@ -131,12 +131,82 @@ impl From<WindowMaskOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.available);
         bit_data.push(value.transparent);
-        bit_data.extend([0; 6]);
+        bit_data.extend([false; 6]);
         bit_data.load::<u8>()
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
+pub enum Event {
+    Reserved = 0,
+    OnActivate = 1,
+    OnDeactivate = 2,
+    OnShow = 3,
+    OnHide = 4,
+    // OnRefresh = N/A
+    OnEnable = 5,
+    OnDisable = 6,
+    OnChangeActiveMask = 7,
+    OnChangeSoftKeyMask = 8,
+    OnChangeAttribute = 9,
+    OnChangeBackgroundColour = 10,
+    OnChangeFontAttributes = 11,
+    OnChangeLineAttributes = 12,
+    OnChangeFillAttributes = 13,
+    OnChangeChildLocation = 14,
+    OnChangeSize = 15,
+    OnChangeValue = 16,
+    OnChangePriority = 17,
+    OnChangeEndPoint = 18,
+    OnInputFieldSelection = 19,
+    OnInputFieldDeselection = 20,
+    OnESC = 21,
+    OnEntryOfValue = 22,
+    OnEntryOfNewValue = 23,
+    OnKeyPress = 24,
+    OnKeyRelease = 25,
+    OnChangeChildPosition = 26,
+    OnPointingEventPress = 27,
+    OnPointingEventRelease = 28,
+    // Reserved 29-239
+    ProprietaryEvent1 = 240,
+    ProprietaryEvent2 = 241,
+    ProprietaryEvent3 = 242,
+    ProprietaryEvent4 = 243,
+    ProprietaryEvent5 = 244,
+    ProprietaryEvent6 = 245,
+    ProprietaryEvent7 = 246,
+    ProprietaryEvent8 = 247,
+    ProprietaryEvent9 = 248,
+    ProprietaryEvent10 = 249,
+    ProprietaryEvent11 = 250,
+    ProprietaryEvent12 = 251,
+    ProprietaryEvent13 = 252,
+    ProprietaryEvent14 = 253,
+    ProprietaryEvent15 = 254,
+    UseExtendedMacro = 255,
+}
+
+impl Event {
+    pub fn iter() -> impl Iterator<Item = Event> {
+        (0..=255).map(Event::from).filter(|e| *e != Event::Reserved)
+    }
+}
+
+impl From<u8> for Event {
+    fn from(value: u8) -> Self {
+        Event::from_repr(value).unwrap_or(Event::Reserved)
+    }
+}
+
+impl From<Event> for u8 {
+    fn from(value: Event) -> Self {
+        value as u8
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct ObjectRef {
     pub id: ObjectId,
     pub offset: Point<i16>,
@@ -144,10 +214,10 @@ pub struct ObjectRef {
     // pub y: i16,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct MacroRef {
     pub macro_id: u8,
-    pub event_id: u8,
+    pub event_id: Event,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -167,7 +237,7 @@ impl core::ops::Add<Point<i16>> for Point<u16> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectLabel {
     pub id: ObjectId,
     pub string_variable_reference: NullableObjectId,
@@ -208,7 +278,7 @@ impl From<ButtonOptions> for u8 {
         bit_data.push(value.transparent_background);
         bit_data.push(value.disabled);
         bit_data.push(value.no_border);
-        bit_data.extend([0; 3]);
+        bit_data.extend([false; 2]);
         bit_data.load::<u8>()
     }
 }
@@ -261,7 +331,7 @@ impl From<InputStringOptions> for u8 {
         bit_data.push(value.transparent);
         bit_data.push(value.auto_wrap);
         bit_data.push(value.wrap_on_hyphen);
-        bit_data.extend([0; 5]);
+        bit_data.extend([false; 5]);
         bit_data.load::<u8>()
     }
 }
@@ -274,7 +344,7 @@ pub struct Alignment {
 
 impl From<u8> for Alignment {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         Alignment {
             horizontal: HorizontalAlignment::from([
                 bit_data.pop().unwrap(),
@@ -390,7 +460,7 @@ impl From<InputNumberOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.enabled);
         bit_data.push(value.real_time_editing);
-        bit_data.extend([0; 6]);
+        bit_data.extend([false; 6]);
         bit_data.load::<u8>()
     }
 }
@@ -440,7 +510,7 @@ impl From<InputListOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.enabled);
         bit_data.push(value.real_time_editing);
-        bit_data.extend([0; 6]);
+        bit_data.extend([false; 6]);
         bit_data.load::<u8>()
     }
 }
@@ -515,7 +585,7 @@ impl From<NumberOptions> for u8 {
         bit_data.push(value.display_leading_zeros);
         bit_data.push(value.display_zero_as_blank);
         bit_data.push(value.truncate);
-        bit_data.extend([0; 4]);
+        bit_data.extend([false; 4]);
         bit_data.load::<u8>()
     }
 }
@@ -526,7 +596,7 @@ impl From<OutputStringOptions> for u8 {
         bit_data.push(value.transparent);
         bit_data.push(value.auto_wrap);
         bit_data.push(value.wrap_on_hyphen);
-        bit_data.extend([0; 5]);
+        bit_data.extend([false; 5]);
         bit_data.load::<u8>()
     }
 }
@@ -591,7 +661,7 @@ pub struct GraphicsContextOptions {
 
 impl From<u8> for GraphicsContextOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         GraphicsContextOptions {
             transparent: bit_data.pop().unwrap(),
             color: bit_data.pop().unwrap().into(),
@@ -604,7 +674,7 @@ impl From<GraphicsContextOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.transparent);
         bit_data.push(value.color.into());
-        bit_data.extend([0; 6]);
+        bit_data.extend([false; 6]);
         bit_data.load::<u8>()
     }
 }
@@ -617,7 +687,7 @@ pub struct KeyGroupOptions {
 
 impl From<u8> for KeyGroupOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         KeyGroupOptions {
             available: bit_data.pop().unwrap(),
             transparent: bit_data.pop().unwrap(),
@@ -630,7 +700,7 @@ impl From<KeyGroupOptions> for u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.available);
         bit_data.push(value.transparent);
-        bit_data.extend([0; 6]);
+        bit_data.extend([false; 6]);
         bit_data.load::<u8>()
     }
 }
@@ -669,7 +739,7 @@ pub struct OutputMeterOptions {
 
 impl From<u8> for OutputMeterOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         OutputMeterOptions {
             draw_arc: bit_data.pop().unwrap(),
             draw_border: bit_data.pop().unwrap(),
@@ -686,7 +756,7 @@ impl From<OutputMeterOptions> for u8 {
         bit_data.push(value.draw_border);
         bit_data.push(value.draw_ticks);
         bit_data.push(value.deflection_direction.into());
-        bit_data.extend([0; 4]);
+        bit_data.extend([false; 4]);
         bit_data.load::<u8>()
     }
 }
@@ -775,7 +845,7 @@ pub struct OutputLinearBarGraphOptions {
 
 impl From<u8> for OutputLinearBarGraphOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         OutputLinearBarGraphOptions {
             draw_border: bit_data.pop().unwrap(),
             draw_target_line: bit_data.pop().unwrap(),
@@ -796,7 +866,7 @@ impl From<OutputLinearBarGraphOptions> for u8 {
         bit_data.push(value.bar_graph_type.into());
         bit_data.push(value.axis_orientation.into());
         bit_data.push(value.grow_direction.into());
-        bit_data.extend([0; 2]);
+        bit_data.extend([false; 2]);
         bit_data.load::<u8>()
     }
 }
@@ -813,7 +883,7 @@ pub struct OutputArchedBarGraphOptions {
 
 impl From<u8> for OutputArchedBarGraphOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         let draw_border = bit_data.pop().unwrap();
         let draw_target_line = bit_data.pop().unwrap();
         bit_data.pop(); //undefined bit
@@ -839,7 +909,7 @@ impl From<OutputArchedBarGraphOptions> for u8 {
         bit_data.push(value.axis_orientation.into());
         bit_data.push(value.grow_direction.into());
         bit_data.push(value.deflection_direction.into());
-        bit_data.extend([0; 1]);
+        bit_data.extend([false; 1]);
         bit_data.load::<u8>()
     }
 }
@@ -868,6 +938,26 @@ impl From<DataCodeType> for bool {
     }
 }
 
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
+pub enum PictureGraphicFormat {
+    Monochrome = 0,
+    FourBit = 1,
+    EightBit = 2,
+}
+
+impl From<u8> for PictureGraphicFormat {
+    fn from(value: u8) -> Self {
+        PictureGraphicFormat::from_repr(value).unwrap()
+    }
+}
+
+impl From<PictureGraphicFormat> for u8 {
+    fn from(value: PictureGraphicFormat) -> Self {
+        value as u8
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PictureGraphicOptions {
     pub transparent: bool,
@@ -877,7 +967,7 @@ pub struct PictureGraphicOptions {
 
 impl From<u8> for PictureGraphicOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         PictureGraphicOptions {
             transparent: bit_data.pop().unwrap(),
             flashing: bit_data.pop().unwrap(),
@@ -892,7 +982,7 @@ impl From<PictureGraphicOptions> for u8 {
         bit_data.push(value.transparent);
         bit_data.push(value.flashing);
         bit_data.push(value.data_code_type.into());
-        bit_data.extend([0; 5]);
+        bit_data.extend([false; 5]);
         bit_data.load::<u8>()
     }
 }
@@ -904,7 +994,7 @@ pub struct ExternalObjectDefinitionOptions {
 
 impl From<u8> for ExternalObjectDefinitionOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         ExternalObjectDefinitionOptions {
             enabled: bit_data.pop().unwrap(),
         }
@@ -915,7 +1005,7 @@ impl From<ExternalObjectDefinitionOptions> for u8 {
     fn from(value: ExternalObjectDefinitionOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.enabled);
-        bit_data.extend([0; 7]);
+        bit_data.extend([false; 7]);
         bit_data.load::<u8>()
     }
 }
@@ -927,7 +1017,7 @@ pub struct ExternalReferenceNameOptions {
 
 impl From<u8> for ExternalReferenceNameOptions {
     fn from(value: u8) -> Self {
-        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
         ExternalReferenceNameOptions {
             enabled: bit_data.pop().unwrap(),
         }
@@ -938,7 +1028,7 @@ impl From<ExternalReferenceNameOptions> for u8 {
     fn from(value: ExternalReferenceNameOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.enabled);
-        bit_data.extend([0; 7]);
+        bit_data.extend([false; 7]);
         bit_data.load::<u8>()
     }
 }
@@ -1023,7 +1113,7 @@ impl From<AnimationOptions> for u8 {
         let disabled_behaviour: [bool; 2] = value.disabled_behaviour.into();
         bit_data.push(disabled_behaviour[0]);
         bit_data.push(disabled_behaviour[1]);
-        bit_data.extend([0; 5]);
+        bit_data.extend([false; 5]);
         bit_data.load::<u8>()
     }
 }
@@ -1041,7 +1131,7 @@ impl From<u8> for ColourPaletteOptions {
 impl From<ColourPaletteOptions> for u8 {
     fn from(_value: ColourPaletteOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
-        bit_data.extend([0; 8]);
+        bit_data.extend([false; 8]);
         bit_data.load::<u8>()
     }
 }
@@ -1064,7 +1154,7 @@ impl From<ScaledGraphicOptions> for u8 {
     fn from(value: ScaledGraphicOptions) -> u8 {
         let mut bit_data: BitVec<u8> = BitVec::new();
         bit_data.push(value.flashing);
-        bit_data.extend([0; 7]);
+        bit_data.extend([false; 7]);
         bit_data.load::<u8>()
     }
 }
