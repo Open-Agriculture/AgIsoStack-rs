@@ -11,7 +11,7 @@ use crate::object_pool::object_attributes::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::{Colour, ObjectType};
 
-use super::object_attributes::{DataCodeType, PictureGraphicFormat};
+use super::object_attributes::{DataCodeType, FontSize, FontStyle, FontType, PictureGraphicFormat};
 use super::object_id::NullableObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -940,9 +940,9 @@ pub struct StringVariable {
 pub struct FontAttributes {
     pub id: ObjectId,
     pub font_colour: u8,
-    pub font_size: u8,
-    pub font_type: u8,
-    pub font_style: u8,
+    pub font_size: FontSize,
+    pub font_type: FontType,
+    pub font_style: FontStyle,
     pub macro_refs: Vec<MacroRef>,
 }
 

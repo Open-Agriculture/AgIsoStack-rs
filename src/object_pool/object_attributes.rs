@@ -987,6 +987,187 @@ impl From<PictureGraphicOptions> for u8 {
     }
 }
 
+/// Represents the non-proportional font sizes as per the standard.
+/// Each variant corresponds to a pixel width × height combination.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum NonProportionalFontSize {
+    Px6x8 = 0,
+    Px8x8 = 1,
+    Px8x12 = 2,
+    Px12x16 = 3,
+    Px16x16 = 4,
+    Px16x24 = 5,
+    Px24x32 = 6,
+    Px32x32 = 7,
+    Px32x48 = 8,
+    Px48x64 = 9,
+    Px64x64 = 10,
+    Px64x96 = 11,
+    Px96x128 = 12,
+    Px128x128 = 13,
+    Px128x192 = 14,
+}
+
+impl From<u8> for NonProportionalFontSize {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => NonProportionalFontSize::Px6x8,
+            1 => NonProportionalFontSize::Px8x8,
+            2 => NonProportionalFontSize::Px8x12,
+            3 => NonProportionalFontSize::Px12x16,
+            4 => NonProportionalFontSize::Px16x16,
+            5 => NonProportionalFontSize::Px16x24,
+            6 => NonProportionalFontSize::Px24x32,
+            7 => NonProportionalFontSize::Px32x32,
+            8 => NonProportionalFontSize::Px32x48,
+            9 => NonProportionalFontSize::Px48x64,
+            10 => NonProportionalFontSize::Px64x64,
+            11 => NonProportionalFontSize::Px64x96,
+            12 => NonProportionalFontSize::Px96x128,
+            13 => NonProportionalFontSize::Px128x128,
+            14 => NonProportionalFontSize::Px128x192,
+            _ => panic!("Invalid non-proportional font size"),
+        }
+    }
+}
+
+impl From<NonProportionalFontSize> for u8 {
+    fn from(value: NonProportionalFontSize) -> u8 {
+        value as u8
+    }
+}
+
+/// Represents the font size attribute. If proportional font rendering is enabled
+/// (bit 7 in font_style), the font size is a pixel height (8 to N). If not proportional,
+/// it is one of the predefined non-proportional sizes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FontSize {
+    NonProportional(NonProportionalFontSize),
+    Proportional(u8), // 8 to N pixel height
+}
+
+impl From<u8> for FontSize {
+    fn from(value: u8) -> Self {
+        if value & 0b1000_0000 == 0 {
+            FontSize::NonProportional(NonProportionalFontSize::from(value))
+        } else {
+            FontSize::Proportional(value & 0b0111_1111)
+        }
+    }
+}
+
+impl From<FontSize> for u8 {
+    fn from(value: FontSize) -> u8 {
+        match value {
+            FontSize::NonProportional(size) => size as u8,
+            FontSize::Proportional(size) => size | 0b1000_0000,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FontType {
+    /// 0: ISO 8859-1 (ISO Latin 1)
+    Latin1,
+    /// 1: ISO 8859-15 (ISO Latin 9)
+    Latin9,
+    /// 2: ISO 8859-2 (ISO Latin 2)
+    Latin2,
+    /// 4: ISO 8859-4 (ISO Latin 4)
+    Latin4,
+    /// 5: ISO 8859-5 (Cyrillic)
+    Cyrillic,
+    /// 7: ISO 8859-7 (Greek)
+    Greek,
+
+    /// Reserved values: 3, 6, and 8–239 fall into this category.
+    /// We store the raw value to keep track of exactly which reserved value it is.
+    Reserved(u8),
+
+    /// Proprietary values: 240–255.
+    /// These may require special handling as defined by the system (see 4.6.24).
+    /// We store the raw value to maintain the exact proprietary code.
+    Proprietary(u8),
+}
+
+impl From<u8> for FontType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => FontType::Latin1,
+            1 => FontType::Latin9,
+            2 => FontType::Latin2,
+            4 => FontType::Latin4,
+            5 => FontType::Cyrillic,
+            7 => FontType::Greek,
+
+            // Proprietary range: 240–255
+            240..=255 => FontType::Proprietary(value),
+
+            // Reserved ranges:
+            // 3, 6, and 8–239 fall here.
+            _ => FontType::Reserved(value),
+        }
+    }
+}
+
+impl From<FontType> for u8 {
+    fn from(value: FontType) -> u8 {
+        match value {
+            FontType::Latin1 => 0,
+            FontType::Latin9 => 1,
+            FontType::Latin2 => 2,
+            FontType::Latin4 => 4,
+            FontType::Cyrillic => 5,
+            FontType::Greek => 7,
+            FontType::Reserved(v) => v,
+            FontType::Proprietary(v) => v,
+        }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FontStyle {
+    pub bold: bool,
+    pub crossed_out: bool,
+    pub underlined: bool,
+    pub italic: bool,
+    pub inverted: bool,
+    pub flashing_inverted: bool,
+    pub flashing_hidden: bool,
+    pub proportional: bool,
+}
+
+impl From<u8> for FontStyle {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Msb0>().to_bitvec();
+        FontStyle {
+            bold: bit_data.pop().unwrap(),
+            crossed_out: bit_data.pop().unwrap(),
+            underlined: bit_data.pop().unwrap(),
+            italic: bit_data.pop().unwrap(),
+            inverted: bit_data.pop().unwrap(),
+            flashing_inverted: bit_data.pop().unwrap(),
+            flashing_hidden: bit_data.pop().unwrap(),
+            proportional: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<FontStyle> for u8 {
+    fn from(value: FontStyle) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        bit_data.push(value.bold);
+        bit_data.push(value.crossed_out);
+        bit_data.push(value.underlined);
+        bit_data.push(value.italic);
+        bit_data.push(value.inverted);
+        bit_data.push(value.flashing_inverted);
+        bit_data.push(value.flashing_hidden);
+        bit_data.push(value.proportional);
+        bit_data.load::<u8>()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExternalObjectDefinitionOptions {
     pub enabled: bool,

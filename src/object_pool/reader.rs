@@ -864,9 +864,9 @@ impl Object {
         let mut o = FontAttributes {
             id,
             font_colour: Self::read_u8(data)?.into(),
-            font_size: Self::read_u8(data)?,
-            font_type: Self::read_u8(data)?,
-            font_style: Self::read_u8(data)?,
+            font_size: Self::read_u8(data)?.into(),
+            font_type: Self::read_u8(data)?.into(),
+            font_style: Self::read_u8(data)?.into(),
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
