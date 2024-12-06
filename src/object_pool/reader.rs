@@ -918,7 +918,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = InputAttributes {
             id,
-            validation_type: Self::read_u8(data)?,
+            validation_type: Self::read_u8(data)?.into(),
             validation_string: Self::read_string(Self::read_u8(data)?.into(), data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -995,7 +995,7 @@ impl Object {
         let mut o = AuxiliaryFunctionType2 {
             id,
             background_colour: Self::read_u8(data)?.into(),
-            function_attributes: Self::read_u8(data)?,
+            function_attributes: Self::read_u8(data)?.into(),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -1012,7 +1012,7 @@ impl Object {
         let mut o = AuxiliaryInputType2 {
             id,
             background_colour: Self::read_u8(data)?.into(),
-            function_attributes: Self::read_u8(data)?,
+            function_attributes: Self::read_u8(data)?.into(),
             object_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -1029,7 +1029,7 @@ impl Object {
         let o = AuxiliaryControlDesignatorType2 {
             id,
             pointer_type: Self::read_u8(data)?,
-            auxiliary_object_id: Self::read_u16(data)?.try_into()?,
+            auxiliary_object_id: Self::read_u16(data)?.into(),
         };
 
         Ok(Object::AuxiliaryControlDesignatorType2(o))

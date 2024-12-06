@@ -1,7 +1,7 @@
 use crate::object_pool::ParseError;
 use crate::object_pool::ParseError::UnsupportedVtVersion;
 
-#[derive(Debug, Default, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub enum VtVersion {
     Version0,
     Version1,

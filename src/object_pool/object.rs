@@ -11,7 +11,9 @@ use crate::object_pool::object_attributes::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::{Colour, ObjectType};
 
-use super::object_attributes::{DataCodeType, FontSize, FontStyle, FontType, PictureGraphicFormat};
+use super::object_attributes::{
+    DataCodeType, FontSize, FontStyle, FontType, FunctionAttributes, PictureGraphicFormat,
+};
 use super::object_id::NullableObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -352,7 +354,9 @@ impl Object {
             | Object::AuxiliaryInputType1(_)
             | Object::AuxiliaryFunctionType2(_)
             | Object::AuxiliaryInputType2(_) => (), // No references
-            Object::AuxiliaryControlDesignatorType2(o) => refs.push(o.auxiliary_object_id),
+            Object::AuxiliaryControlDesignatorType2(o) => {
+                push_nullable_id(&mut refs, &o.auxiliary_object_id)
+            }
             Object::WindowMask(o) => {
                 push_nullable_id(&mut refs, &o.window_title);
                 push_nullable_id(&mut refs, &o.window_icon);
@@ -967,7 +971,7 @@ pub struct FillAttributes {
 #[derive(Debug, PartialEq, Clone)]
 pub struct InputAttributes {
     pub id: ObjectId,
-    pub validation_type: u8,
+    pub validation_type: ValidationType,
     pub validation_string: String,
     pub macro_refs: Vec<MacroRef>,
 }
@@ -1049,7 +1053,7 @@ pub struct AuxiliaryInputType1 {
 pub struct AuxiliaryFunctionType2 {
     pub id: ObjectId,
     pub background_colour: u8,
-    pub function_attributes: u8,
+    pub function_attributes: FunctionAttributes,
     pub object_refs: Vec<ObjectRef>,
 }
 
@@ -1057,7 +1061,7 @@ pub struct AuxiliaryFunctionType2 {
 pub struct AuxiliaryInputType2 {
     pub id: ObjectId,
     pub background_colour: u8,
-    pub function_attributes: u8,
+    pub function_attributes: FunctionAttributes,
     pub object_refs: Vec<ObjectRef>,
 }
 
@@ -1065,7 +1069,7 @@ pub struct AuxiliaryInputType2 {
 pub struct AuxiliaryControlDesignatorType2 {
     pub id: ObjectId,
     pub pointer_type: u8,
-    pub auxiliary_object_id: ObjectId,
+    pub auxiliary_object_id: NullableObjectId,
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -1339,3 +1339,155 @@ impl From<ScaledGraphicOptions> for u8 {
         bit_data.load::<u8>()
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum AuxiliaryFunctionType {
+    /// 0 = Boolean (Latching), two-position switch (maintains position)
+    /// On/Off with values 0,1
+    BooleanLatching = 0,
+
+    /// 1 = Analogue (maintains position setting)
+    /// Value 1: 0–100% of position, Value 2: FFFF16 = reserved
+    AnalogueMaintains = 1,
+
+    /// 2 = Boolean (Non-Latching), two-position switch (return to off)
+    /// Momentary On/Off with values 0,1,2 (0=Off, 1=On, 2=Held)
+    BooleanNonLatching = 2,
+
+    /// 3 = Analogue (return to 50%), two-way analogue return to center
+    /// 0% to 100%, centered at 50%
+    AnalogueReturnToCenter = 3,
+
+    /// 4 = Analogue (return to 0%), one-way analogue return to zero
+    /// 0% to 100%, returning to 0% position
+    AnalogueReturnToZero = 4,
+
+    /// 5 = Dual Boolean (Latching), three-position switch (latching)
+    /// Maintains position with values 0,1,4
+    DualBooleanLatching = 5,
+
+    /// 6 = Dual Boolean (Non-Latching), three-position switch returning to center
+    /// Values may include momentary and held states
+    DualBooleanNonLatching = 6,
+
+    /// 7 = Dual Boolean (Latching Up, Momentary Down), three-position switch
+    /// Latching in one direction, momentary in the other
+    DualBooleanLatchingUp = 7,
+
+    /// 8 = Dual Boolean (Latching Down, Momentary Up), three-position switch
+    /// Latching in one direction, momentary in the other
+    DualBooleanLatchingDown = 8,
+
+    /// 9 = Combined Analogue (return to 50%) with Dual Boolean Latching at endpoints
+    /// Analogue axis returning to center with latchable endpoints
+    CombinedAnalogueReturnWithLatch = 9,
+
+    /// 10 = Combined Analogue (maintains position) with Dual Boolean Latching at endpoints
+    /// Analogue axis maintains position with latchable endpoints
+    CombinedAnalogueMaintainsWithLatch = 10,
+
+    /// 11 = Quadrature Boolean (Non-Latching)
+    /// Two axes of non-latching boolean states, represented as bit pairs
+    QuadratureBooleanNonLatching = 11,
+
+    /// 12 = Quadrature Analogue (maintains position)
+    /// Two axes of analogue with full maintainable positions
+    QuadratureAnalogueMaintains = 12,
+
+    /// 13 = Quadrature Analogue (return to 50%)
+    /// Two axes of analogue returning to center
+    QuadratureAnalogueReturnToCenter = 13,
+
+    /// 14 = Bidirectional Encoder
+    /// Value increments/decrements as an encoder is turned
+    BidirectionalEncoder = 14,
+
+    /// 15–30 = Reserved
+    Reserved(u8),
+
+    /// 31 = Reserved for remove assignment command
+    RemoveAssignment = 31,
+}
+
+impl From<u8> for AuxiliaryFunctionType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => AuxiliaryFunctionType::BooleanLatching,
+            1 => AuxiliaryFunctionType::AnalogueMaintains,
+            2 => AuxiliaryFunctionType::BooleanNonLatching,
+            3 => AuxiliaryFunctionType::AnalogueReturnToCenter,
+            4 => AuxiliaryFunctionType::AnalogueReturnToZero,
+            5 => AuxiliaryFunctionType::DualBooleanLatching,
+            6 => AuxiliaryFunctionType::DualBooleanNonLatching,
+            7 => AuxiliaryFunctionType::DualBooleanLatchingUp,
+            8 => AuxiliaryFunctionType::DualBooleanLatchingDown,
+            9 => AuxiliaryFunctionType::CombinedAnalogueReturnWithLatch,
+            10 => AuxiliaryFunctionType::CombinedAnalogueMaintainsWithLatch,
+            11 => AuxiliaryFunctionType::QuadratureBooleanNonLatching,
+            12 => AuxiliaryFunctionType::QuadratureAnalogueMaintains,
+            13 => AuxiliaryFunctionType::QuadratureAnalogueReturnToCenter,
+            14 => AuxiliaryFunctionType::BidirectionalEncoder,
+            31 => AuxiliaryFunctionType::RemoveAssignment,
+            v if v > 14 && v < 31 => AuxiliaryFunctionType::Reserved(v),
+            _ => panic!("Invalid function type"),
+        }
+    }
+}
+
+impl From<AuxiliaryFunctionType> for u8 {
+    fn from(value: AuxiliaryFunctionType) -> Self {
+        match value {
+            AuxiliaryFunctionType::BooleanLatching => 0,
+            AuxiliaryFunctionType::AnalogueMaintains => 1,
+            AuxiliaryFunctionType::BooleanNonLatching => 2,
+            AuxiliaryFunctionType::AnalogueReturnToCenter => 3,
+            AuxiliaryFunctionType::AnalogueReturnToZero => 4,
+            AuxiliaryFunctionType::DualBooleanLatching => 5,
+            AuxiliaryFunctionType::DualBooleanNonLatching => 6,
+            AuxiliaryFunctionType::DualBooleanLatchingUp => 7,
+            AuxiliaryFunctionType::DualBooleanLatchingDown => 8,
+            AuxiliaryFunctionType::CombinedAnalogueReturnWithLatch => 9,
+            AuxiliaryFunctionType::CombinedAnalogueMaintainsWithLatch => 10,
+            AuxiliaryFunctionType::QuadratureBooleanNonLatching => 11,
+            AuxiliaryFunctionType::QuadratureAnalogueMaintains => 12,
+            AuxiliaryFunctionType::QuadratureAnalogueReturnToCenter => 13,
+            AuxiliaryFunctionType::BidirectionalEncoder => 14,
+            AuxiliaryFunctionType::RemoveAssignment => 31,
+            AuxiliaryFunctionType::Reserved(v) => v,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FunctionAttributes {
+    pub function_type: AuxiliaryFunctionType, // Bit 0-4
+    pub critical: bool,                       // Bit 5
+    pub restricted: bool, // Bit 6 for AuxiliaryFunctionType2, reserved for AuxiliaryInputType2
+    pub single_assignment: bool, // Bit 7
+}
+
+impl From<u8> for FunctionAttributes {
+    fn from(value: u8) -> Self {
+        let mut bit_data = value.view_bits::<Lsb0>().to_bitvec();
+        FunctionAttributes {
+            function_type: bit_data[0..5].load::<u8>().into(),
+            critical: bit_data.pop().unwrap(),
+            restricted: bit_data.pop().unwrap(),
+            single_assignment: bit_data.pop().unwrap(),
+        }
+    }
+}
+
+impl From<FunctionAttributes> for u8 {
+    fn from(value: FunctionAttributes) -> u8 {
+        let mut bit_data: BitVec<u8> = BitVec::new();
+        let ft_val: u8 = value.function_type.into();
+        let ft_bits = ft_val.view_bits::<Lsb0>()[0..5].iter().copied();
+        bit_data.extend(ft_bits);
+        bit_data.push(value.critical);
+        bit_data.push(value.restricted);
+        bit_data.push(value.single_assignment);
+        bit_data.load::<u8>()
+    }
+}
