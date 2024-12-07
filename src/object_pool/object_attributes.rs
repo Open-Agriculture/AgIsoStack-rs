@@ -1009,6 +1009,48 @@ pub enum NonProportionalFontSize {
     Px128x192 = 14,
 }
 
+impl NonProportionalFontSize {
+    pub fn height(&self) -> u8 {
+        match self {
+            NonProportionalFontSize::Px6x8 => 8,
+            NonProportionalFontSize::Px8x8 => 8,
+            NonProportionalFontSize::Px8x12 => 12,
+            NonProportionalFontSize::Px12x16 => 16,
+            NonProportionalFontSize::Px16x16 => 16,
+            NonProportionalFontSize::Px16x24 => 24,
+            NonProportionalFontSize::Px24x32 => 32,
+            NonProportionalFontSize::Px32x32 => 32,
+            NonProportionalFontSize::Px32x48 => 48,
+            NonProportionalFontSize::Px48x64 => 64,
+            NonProportionalFontSize::Px64x64 => 64,
+            NonProportionalFontSize::Px64x96 => 96,
+            NonProportionalFontSize::Px96x128 => 128,
+            NonProportionalFontSize::Px128x128 => 128,
+            NonProportionalFontSize::Px128x192 => 192,
+        }
+    }
+
+    pub fn width(&self) -> u8 {
+        match self {
+            NonProportionalFontSize::Px6x8 => 6,
+            NonProportionalFontSize::Px8x8 => 8,
+            NonProportionalFontSize::Px8x12 => 8,
+            NonProportionalFontSize::Px12x16 => 12,
+            NonProportionalFontSize::Px16x16 => 16,
+            NonProportionalFontSize::Px16x24 => 16,
+            NonProportionalFontSize::Px24x32 => 24,
+            NonProportionalFontSize::Px32x32 => 32,
+            NonProportionalFontSize::Px32x48 => 32,
+            NonProportionalFontSize::Px48x64 => 48,
+            NonProportionalFontSize::Px64x64 => 64,
+            NonProportionalFontSize::Px64x96 => 64,
+            NonProportionalFontSize::Px96x128 => 96,
+            NonProportionalFontSize::Px128x128 => 128,
+            NonProportionalFontSize::Px128x192 => 128,
+        }
+    }
+}
+
 impl From<u8> for NonProportionalFontSize {
     fn from(value: u8) -> Self {
         match value {
