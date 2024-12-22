@@ -1,6 +1,6 @@
 use crate::object_pool::ParseError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ObjectId {
     id: u16,
 }
