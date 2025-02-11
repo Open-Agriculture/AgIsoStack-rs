@@ -141,6 +141,10 @@ impl ObjectPool {
         &self.objects
     }
 
+    pub fn objects_mut(&mut self) -> &mut [Object] {
+        &mut self.objects
+    }
+
     // Get objects by type
 
     pub fn working_set_object(&self) -> Option<&WorkingSet> {
