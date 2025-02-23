@@ -387,7 +387,7 @@ impl From<[bool; 2]> for HorizontalAlignment {
                 true => HorizontalAlignment::Middle,
             },
             true => match value[1] {
-                false => HorizontalAlignment::Middle,
+                false => HorizontalAlignment::Right,
                 true => HorizontalAlignment::Reserved,
             },
         }
@@ -398,8 +398,8 @@ impl From<HorizontalAlignment> for [bool; 2] {
     fn from(value: HorizontalAlignment) -> Self {
         match value {
             HorizontalAlignment::Left => [false, false],
-            HorizontalAlignment::Middle => [false, true],
-            HorizontalAlignment::Right => [true, false],
+            HorizontalAlignment::Middle => [true, false],
+            HorizontalAlignment::Right => [false, true],
             HorizontalAlignment::Reserved => [true, true],
         }
     }
@@ -432,8 +432,8 @@ impl From<VerticalAlignment> for [bool; 2] {
     fn from(value: VerticalAlignment) -> Self {
         match value {
             VerticalAlignment::Top => [false, false],
-            VerticalAlignment::Middle => [false, true],
-            VerticalAlignment::Bottom => [true, false],
+            VerticalAlignment::Middle => [true, false],
+            VerticalAlignment::Bottom => [false, true],
             VerticalAlignment::Reserved => [true, true],
         }
     }
