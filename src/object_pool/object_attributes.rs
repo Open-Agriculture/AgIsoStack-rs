@@ -381,15 +381,11 @@ pub enum HorizontalAlignment {
 
 impl From<[bool; 2]> for HorizontalAlignment {
     fn from(value: [bool; 2]) -> Self {
-        match value[0] {
-            false => match value[1] {
-                false => HorizontalAlignment::Left,
-                true => HorizontalAlignment::Middle,
-            },
-            true => match value[1] {
-                false => HorizontalAlignment::Right,
-                true => HorizontalAlignment::Reserved,
-            },
+        match value {
+            [false, false] => HorizontalAlignment::Left,
+            [true, false] => HorizontalAlignment::Middle,
+            [false, true] => HorizontalAlignment::Right,
+            [true, true] => HorizontalAlignment::Reserved,
         }
     }
 }
@@ -415,15 +411,11 @@ pub enum VerticalAlignment {
 
 impl From<[bool; 2]> for VerticalAlignment {
     fn from(value: [bool; 2]) -> Self {
-        match value[0] {
-            false => match value[1] {
-                false => VerticalAlignment::Top,
-                true => VerticalAlignment::Middle,
-            },
-            true => match value[1] {
-                false => VerticalAlignment::Bottom,
-                true => VerticalAlignment::Reserved,
-            },
+        match value {
+            [false, false] => VerticalAlignment::Top,
+            [true, false] => VerticalAlignment::Middle,
+            [false, true] => VerticalAlignment::Bottom,
+            [true, true] => VerticalAlignment::Reserved,
         }
     }
 }
