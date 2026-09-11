@@ -291,16 +291,16 @@ impl Object {
             Object::Key(o) => extend_object_refs(&mut refs, &o.object_refs),
             Object::Button(o) => extend_object_refs(&mut refs, &o.object_refs),
             Object::InputBoolean(o) => {
-                refs.push(o.foreground_colour);
+                push_nullable_id(&mut refs, &o.foreground_colour);
                 push_nullable_id(&mut refs, &o.variable_reference);
             }
             Object::InputString(o) => {
-                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.font_attributes);
                 push_nullable_id(&mut refs, &o.input_attributes);
                 push_nullable_id(&mut refs, &o.variable_reference);
             }
             Object::InputNumber(o) => {
-                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.font_attributes);
                 push_nullable_id(&mut refs, &o.variable_reference);
             }
             Object::InputList(o) => {
@@ -308,28 +308,28 @@ impl Object {
                 extend_nullable_ids(&mut refs, &o.list_items);
             }
             Object::OutputString(o) => {
-                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.font_attributes);
                 push_nullable_id(&mut refs, &o.variable_reference);
             }
             Object::OutputNumber(o) => {
-                refs.push(o.font_attributes);
+                push_nullable_id(&mut refs, &o.font_attributes);
                 push_nullable_id(&mut refs, &o.variable_reference);
             }
             Object::OutputList(o) => {
                 push_nullable_id(&mut refs, &o.variable_reference);
                 extend_nullable_ids(&mut refs, &o.list_items);
             }
-            Object::OutputLine(o) => refs.push(o.line_attributes),
+            Object::OutputLine(o) => push_nullable_id(&mut refs, &o.line_attributes),
             Object::OutputRectangle(o) => {
-                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.line_attributes);
                 push_nullable_id(&mut refs, &o.fill_attributes);
             }
             Object::OutputEllipse(o) => {
-                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.line_attributes);
                 push_nullable_id(&mut refs, &o.fill_attributes);
             }
             Object::OutputPolygon(o) => {
-                refs.push(o.line_attributes);
+                push_nullable_id(&mut refs, &o.line_attributes);
                 push_nullable_id(&mut refs, &o.fill_attributes);
             }
             Object::OutputMeter(o) => push_nullable_id(&mut refs, &o.variable_reference),
@@ -527,7 +527,7 @@ pub struct InputBoolean {
     pub id: ObjectId,
     pub background_colour: u8,
     pub width: u16,
-    pub foreground_colour: ObjectId,
+    pub foreground_colour: NullableObjectId,
     pub variable_reference: NullableObjectId,
     pub value: bool,
     pub enabled: bool,
@@ -550,7 +550,7 @@ pub struct InputString {
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
-    pub font_attributes: ObjectId,
+    pub font_attributes: NullableObjectId,
     pub input_attributes: NullableObjectId,
     pub options: InputStringOptions,
     pub variable_reference: NullableObjectId,
@@ -576,7 +576,7 @@ pub struct InputNumber {
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
-    pub font_attributes: ObjectId,
+    pub font_attributes: NullableObjectId,
     pub options: NumberOptions,
     pub variable_reference: NullableObjectId,
     pub value: u32,
@@ -629,7 +629,7 @@ pub struct OutputString {
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
-    pub font_attributes: ObjectId,
+    pub font_attributes: NullableObjectId,
     pub options: OutputStringOptions,
     pub variable_reference: NullableObjectId,
     pub justification: Alignment,
@@ -653,7 +653,7 @@ pub struct OutputNumber {
     pub width: u16,
     pub height: u16,
     pub background_colour: u8,
-    pub font_attributes: ObjectId,
+    pub font_attributes: NullableObjectId,
     pub options: NumberOptions,
     pub variable_reference: NullableObjectId,
     pub value: u32,
@@ -699,7 +699,7 @@ impl SizedObject for OutputList {
 #[derive(Debug, PartialEq, Clone)]
 pub struct OutputLine {
     pub id: ObjectId,
-    pub line_attributes: ObjectId,
+    pub line_attributes: NullableObjectId,
     pub width: u16,
     pub height: u16,
     pub line_direction: LineDirection,
@@ -719,7 +719,7 @@ impl SizedObject for OutputLine {
 #[derive(Debug, PartialEq, Clone)]
 pub struct OutputRectangle {
     pub id: ObjectId,
-    pub line_attributes: ObjectId,
+    pub line_attributes: NullableObjectId,
     pub width: u16,
     pub height: u16,
     pub line_suppression: u8,
@@ -740,7 +740,7 @@ impl SizedObject for OutputRectangle {
 #[derive(Debug, PartialEq, Clone)]
 pub struct OutputEllipse {
     pub id: ObjectId,
-    pub line_attributes: ObjectId,
+    pub line_attributes: NullableObjectId,
     pub width: u16,
     pub height: u16,
     pub ellipse_type: u8,
@@ -765,7 +765,7 @@ pub struct OutputPolygon {
     pub id: ObjectId,
     pub width: u16,
     pub height: u16,
-    pub line_attributes: ObjectId,
+    pub line_attributes: NullableObjectId,
     pub fill_attributes: NullableObjectId,
     pub polygon_type: u8,
     pub points: Vec<Point<u16>>,

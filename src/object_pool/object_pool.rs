@@ -7,6 +7,7 @@ use crate::object_pool::object::{
 use crate::object_pool::object_id::ObjectId;
 use crate::object_pool::vt_version::VtVersion;
 use crate::object_pool::ObjectType;
+use crate::object_pool::ParseError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectPool {
@@ -76,18 +77,50 @@ impl ObjectPool {
         op
     }
 
+    /// Like [`from_iop`](Self::from_iop), but returns the first parse error
+    /// instead of silently keeping only the objects read before it.
+    ///
+    /// `from_iop` cannot tell a pool that ended from a pool it could not
+    /// finish reading: both just stop. For a pool whose Working Set is not the
+    /// first object, an unreadable object anywhere before it makes the
+    /// lenient parse come back with no Working Set at all and no indication
+    /// why. Use this when that difference matters.
+    pub fn try_from_iop<I>(data: I) -> Result<Self, ParseError>
+    where
+        I: IntoIterator<Item = u8>,
+    {
+        let mut op = Self::new();
+        op.try_extend_with_iop(data)?;
+        Ok(op)
+    }
+
     pub fn extend_with_iop<I>(&mut self, data: I)
     where
         I: IntoIterator<Item = u8>,
     {
-        let mut data = data.into_iter();
+        // Lenient by design: keep whatever was readable, as this always has.
+        let _ = self.try_extend_with_iop(data);
+    }
 
-        while let Ok(o) = Object::read(&mut data) {
+    /// Strict counterpart of [`extend_with_iop`](Self::extend_with_iop): stops
+    /// at, and returns, the first object that cannot be read. Objects read
+    /// before the failure have already been added.
+    pub fn try_extend_with_iop<I>(&mut self, data: I) -> Result<(), ParseError>
+    where
+        I: IntoIterator<Item = u8>,
+    {
+        let mut data = data.into_iter().peekable();
+
+        // Running out of data *between* objects is the normal end of a pool;
+        // running out inside one is a truncated object and is reported.
+        while data.peek().is_some() {
+            let o = Object::read(&mut data)?;
             // By the standard, if there already is an object with the same ID, the new object
             // replaces the old one
             self.objects.retain(|x| x.id() != o.id());
             self.objects.push(o);
         }
+        Ok(())
     }
 
     pub fn as_iop(&self) -> Vec<u8> {
