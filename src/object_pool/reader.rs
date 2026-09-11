@@ -497,7 +497,7 @@ impl Object {
             id,
             background_colour: Self::read_u8(data)?.into(),
             width: Self::read_u16(data)?,
-            foreground_colour: Self::read_u16(data)?.try_into()?,
+            foreground_colour: Self::read_u16(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
             value: Self::read_bool(data)?,
             enabled: Self::read_bool(data)?,
@@ -519,7 +519,7 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.try_into()?,
+            font_attributes: Self::read_u16(data)?.into(),
             input_attributes: Self::read_u16(data)?.into(),
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
@@ -544,7 +544,7 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.try_into()?,
+            font_attributes: Self::read_u16(data)?.into(),
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
             value: Self::read_u32(data)?,
@@ -599,7 +599,7 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.try_into()?,
+            font_attributes: Self::read_u16(data)?.into(),
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
             justification: Self::read_u8(data)?.into(),
@@ -622,7 +622,7 @@ impl Object {
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.try_into()?,
+            font_attributes: Self::read_u16(data)?.into(),
             options: Self::read_u8(data)?.into(),
             variable_reference: Self::read_u16(data)?.into(),
             value: Self::read_u32(data)?,
@@ -646,7 +646,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputLine {
             id,
-            line_attributes: Self::read_u16(data)?.try_into()?,
+            line_attributes: Self::read_u16(data)?.into(),
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             line_direction: Self::read_u8(data)?.into(),
@@ -665,7 +665,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputRectangle {
             id,
-            line_attributes: Self::read_u16(data)?.try_into()?,
+            line_attributes: Self::read_u16(data)?.into(),
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             line_suppression: Self::read_u8(data)?,
@@ -685,7 +685,7 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let mut o = OutputEllipse {
             id,
-            line_attributes: Self::read_u16(data)?.try_into()?,
+            line_attributes: Self::read_u16(data)?.into(),
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
             ellipse_type: Self::read_u8(data)?,
@@ -709,7 +709,7 @@ impl Object {
             id,
             width: Self::read_u16(data)?,
             height: Self::read_u16(data)?,
-            line_attributes: Self::read_u16(data)?.try_into()?,
+            line_attributes: Self::read_u16(data)?.into(),
             fill_attributes: Self::read_u16(data)?.into(),
             polygon_type: Self::read_u8(data)?,
             points: Vec::with_capacity(Self::read_u8(data)?.into()),
@@ -1325,7 +1325,7 @@ mod tests {
     use crate::object_pool::object::{Object, WorkingSet};
     use crate::object_pool::object_attributes::{ObjectRef, Point};
     use crate::object_pool::object_id::ObjectId;
-    use crate::object_pool::{Colour, ObjectPool, ObjectType};
+    use crate::object_pool::{Colour, NullableObjectId, ObjectPool, ObjectType, ParseError};
     use std::vec::IntoIter;
 
     fn read_id_type(data: &mut dyn Iterator<Item = u8>) -> ObjectId {
@@ -1382,7 +1382,7 @@ mod tests {
 
         let _working_set_exp = WorkingSet {
             id,
-            background_colour: Colour::new_by_id(0xF0),
+            background_colour: Colour::new_by_id(0xF0).into(),
             selectable: true,
             active_mask: ObjectId::default(),
             object_refs: vec![
@@ -1400,5 +1400,119 @@ mod tests {
         };
 
         assert_eq!(*_working_set_act, _working_set_exp);
+    }
+
+    // ISO 11783-6 allows the Line Attributes reference of the output shape
+    // objects, the Font Attributes reference of the string/number objects and
+    // the Foreground Colour reference of Input Boolean to be the NULL object
+    // ID (0xFFFF). Real pools use it: a John Deere StarFire receiver's pool
+    // nulls line attributes on 213 shapes and foreground colour on every one
+    // of its Input Booleans. Rejecting it made `Object::read` fail partway
+    // through such pools.
+
+    #[test]
+    fn read_output_line_with_null_line_attributes_test() {
+        let mut data: IntoIter<u8> = vec![
+            0x01, 0x00, // Object ID
+            0x0D, // Type: Output Line
+            0xFF, 0xFF, // Line attributes: NULL
+            0x70, 0x00, // Width
+            0x01, 0x00, // Height
+            0x00, // Line direction
+            0x00, // Number of macro references
+        ]
+        .into_iter();
+
+        match Object::read(&mut data) {
+            Ok(Object::OutputLine(o)) => assert_eq!(o.line_attributes, NullableObjectId::NULL),
+            other => panic!("expected an Output Line, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn read_output_string_with_null_font_attributes_test() {
+        let mut data: IntoIter<u8> = vec![
+            0x02, 0x00, // Object ID
+            0x0B, // Type: Output String
+            0x10, 0x00, // Width
+            0x08, 0x00, // Height
+            0x01, // Background colour
+            0xFF, 0xFF, // Font attributes: NULL
+            0x00, // Options
+            0xFF, 0xFF, // Variable reference: NULL
+            0x00, // Justification
+            0x00, 0x00, // Length
+            0x00, // Number of macro references
+        ]
+        .into_iter();
+
+        match Object::read(&mut data) {
+            Ok(Object::OutputString(o)) => assert_eq!(o.font_attributes, NullableObjectId::NULL),
+            other => panic!("expected an Output String, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn read_input_boolean_with_null_foreground_colour_test() {
+        let mut data: IntoIter<u8> = vec![
+            0x03, 0x00, // Object ID
+            0x07, // Type: Input Boolean
+            0x01, // Background colour
+            0x10, 0x00, // Width
+            0xFF, 0xFF, // Foreground colour: NULL
+            0xFF, 0xFF, // Variable reference: NULL
+            0x00, // Value
+            0x01, // Enabled
+            0x00, // Number of macro references
+        ]
+        .into_iter();
+
+        match Object::read(&mut data) {
+            Ok(Object::InputBoolean(o)) => assert_eq!(o.foreground_colour, NullableObjectId::NULL),
+            other => panic!("expected an Input Boolean, got {:?}", other),
+        }
+    }
+
+    // The pool-level consequence of the above: `from_iop` stops at the first
+    // object it cannot read and keeps what came before, so one NULL reference
+    // early in a pool used to drop every object after it -- including the
+    // Working Set when a vendor places it last, as John Deere does.
+    #[test]
+    fn from_iop_keeps_objects_after_null_line_attributes_test() {
+        let iop: Vec<u8> = vec![
+            // Output Line, id 1, line attributes NULL
+            0x01, 0x00, 0x0D, 0xFF, 0xFF, 0x70, 0x00, 0x01, 0x00, 0x00, 0x00,
+            // Working Set, id 0, active mask 2, one language "en"
+            0x00, 0x00, 0x00, 0xF0, 0x01, 0x02, 0x00, 0x00, 0x00, 0x01, b'e', b'n',
+            // Data Mask, id 2, no soft key mask
+            0x02, 0x00, 0x01, 0xF0, 0xFF, 0xFF, 0x00, 0x00,
+        ];
+
+        let pool = ObjectPool::from_iop(iop.clone());
+
+        assert_eq!(pool.objects().len(), 3);
+        assert!(pool.working_set_object().is_some());
+        assert_eq!(
+            pool.as_iop(),
+            iop,
+            "NULL references must round-trip as 0xFFFF"
+        );
+
+        let strict = ObjectPool::try_from_iop(iop)
+            .unwrap_or_else(|why| panic!("strict parse should succeed: {:?}", why));
+        assert_eq!(strict.objects().len(), 3);
+    }
+
+    #[test]
+    fn try_from_iop_reports_truncated_object_test() {
+        // An Output Line cut off after its type byte.
+        let iop: Vec<u8> = vec![0x01, 0x00, 0x0D];
+
+        assert!(matches!(
+            ObjectPool::try_from_iop(iop.clone()),
+            Err(ParseError::DataEmpty)
+        ));
+        // The lenient reader keeps its existing behaviour: no objects, no error.
+        assert_eq!(ObjectPool::from_iop(iop).objects().len(), 0);
     }
 }
