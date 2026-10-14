@@ -4,10 +4,34 @@ use crate::object_pool::object::{
     InputString, Key, KeyGroup, LineAttributes, Object, OutputLine, OutputList, OutputNumber,
     OutputString, PictureGraphic, SoftKeyMask, WindowMask, WorkingSet,
 };
-use crate::object_pool::object_id::ObjectId;
+use crate::object_pool::object_id::{NullableObjectId, ObjectId};
 use crate::object_pool::vt_version::VtVersion;
 use crate::object_pool::ObjectType;
 use crate::object_pool::ParseError;
+use std::error::Error;
+use std::fmt;
+
+#[derive(Debug)]
+pub struct PoolCodecError {
+    pub offset: usize,
+    pub object_id: Option<u16>,
+    pub source: ParseError,
+}
+
+impl fmt::Display for PoolCodecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.object_id {
+            Some(id) => write!(
+                f,
+                "object 0x{id:04X} at byte {}: {:?}",
+                self.offset, self.source
+            ),
+            None => write!(f, "byte {}: {:?}", self.offset, self.source),
+        }
+    }
+}
+
+impl Error for PoolCodecError {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectPool {
@@ -77,21 +101,79 @@ impl ObjectPool {
         op
     }
 
-    /// Like [`from_iop`](Self::from_iop), but returns the first parse error
-    /// instead of silently keeping only the objects read before it.
-    ///
-    /// `from_iop` cannot tell a pool that ended from a pool it could not
-    /// finish reading: both just stop. For a pool whose Working Set is not the
-    /// first object, an unreadable object anywhere before it makes the
-    /// lenient parse come back with no Working Set at all and no indication
-    /// why. Use this when that difference matters.
+    /// Strictly parse a complete pool while accepting the historical string
+    /// fallback layout and VT5 extended macro references.
     pub fn try_from_iop<I>(data: I) -> Result<Self, ParseError>
     where
         I: IntoIterator<Item = u8>,
     {
-        let mut op = Self::new();
-        op.try_extend_with_iop(data)?;
-        Ok(op)
+        Self::try_from_iop_inner(data.into_iter().collect(), None, false)
+            .map_err(|error| error.source)
+    }
+
+    /// Strictly parse a complete pool using the selected VT wire rules.
+    pub fn try_from_iop_for_version<I>(data: I, version: VtVersion) -> Result<Self, PoolCodecError>
+    where
+        I: IntoIterator<Item = u8>,
+    {
+        Self::try_from_iop_inner(data.into_iter().collect(), Some(version), false)
+    }
+
+    /// Strictly parse a complete `.aitp` v1 object pool, including its
+    /// historical Working Set Special Controls layout.
+    pub fn try_from_legacy_project_iop<I>(data: I) -> Result<Self, PoolCodecError>
+    where
+        I: IntoIterator<Item = u8>,
+    {
+        Self::try_from_iop_inner(data.into_iter().collect(), None, true)
+    }
+
+    fn try_from_iop_inner(
+        bytes: Vec<u8>,
+        version: Option<VtVersion>,
+        legacy_project: bool,
+    ) -> Result<Self, PoolCodecError> {
+        if version.is_some_and(|v| !(2..=6).contains(&u8::from(v))) {
+            return Err(PoolCodecError {
+                offset: 0,
+                object_id: None,
+                source: ParseError::UnsupportedVtVersion,
+            });
+        }
+        let mut pool = Self::new();
+        let mut offset = 0;
+        while offset < bytes.len() {
+            let id = (bytes.len() - offset >= 2)
+                .then(|| u16::from_le_bytes([bytes[offset], bytes[offset + 1]]));
+            let mut counted = CountedIter {
+                inner: bytes[offset..].iter().copied(),
+                count: 0,
+            };
+            let parsed = match (version, legacy_project) {
+                (Some(version), false) => Object::read_for_version(&mut counted, version),
+                (None, true) => Object::read_legacy_project(&mut counted),
+                (None, false) => Object::read(&mut counted),
+                (Some(_), true) => unreachable!("legacy project parsing has no target version"),
+            };
+            match parsed {
+                Ok(object) => {
+                    if counted.count == 0 {
+                        break;
+                    }
+                    pool.objects.retain(|existing| existing.id() != object.id());
+                    pool.objects.push(object);
+                    offset += counted.count;
+                }
+                Err(source) => {
+                    return Err(PoolCodecError {
+                        offset,
+                        object_id: id,
+                        source,
+                    })
+                }
+            }
+        }
+        Ok(pool)
     }
 
     pub fn extend_with_iop<I>(&mut self, data: I)
@@ -124,13 +206,36 @@ impl ObjectPool {
     }
 
     pub fn as_iop(&self) -> Vec<u8> {
+        self.try_as_iop()
+            .expect("object pool contains a string that exceeds its ISO 11783-6 wire length field")
+    }
+
+    /// Serialize the object pool, returning an error if an object's string exceeds its wire limit.
+    pub fn try_as_iop(&self) -> Result<Vec<u8>, String> {
+        self.try_as_iop_for_version(VtVersion::Version6)
+    }
+
+    /// Serialize all objects with the selected VT wire rules.
+    pub fn try_as_iop_for_version(&self, version: VtVersion) -> Result<Vec<u8>, String> {
         let mut data = Vec::new();
 
         for obj in &self.objects {
-            data.extend(obj.write());
+            data.extend(obj.try_write_for_version(version)?);
         }
 
-        data
+        Ok(data)
+    }
+
+    /// Validate all objects against the selected VT wire constraints without
+    /// building the encoded pool buffer.
+    pub fn validate_wire_for_version(&self, version: VtVersion) -> Result<(), String> {
+        if !(2..=6).contains(&u8::from(version)) {
+            return Err(format!("unsupported VT version {}", u8::from(version)));
+        }
+        for object in &self.objects {
+            object.validate_wire_for_version(version)?;
+        }
+        Ok(())
     }
 
     pub fn add(&mut self, obj: Object) {
@@ -143,6 +248,11 @@ impl ObjectPool {
 
     pub fn object_by_id(&self, id: ObjectId) -> Option<&Object> {
         self.objects.iter().find(|&o| o.id() == id)
+    }
+
+    /// Resolve an optional object reference; null or missing references return `None`.
+    pub fn object_by_nullable_id(&self, id: NullableObjectId) -> Option<&Object> {
+        id.0.and_then(|id| self.object_by_id(id))
     }
 
     pub fn object_mut_by_id(&mut self, id: ObjectId) -> Option<&mut Object> {
@@ -432,6 +542,21 @@ impl ObjectPool {
         }
 
         (mask_size, soft_key_size)
+    }
+}
+
+struct CountedIter<I> {
+    inner: I,
+    count: usize,
+}
+impl<I: Iterator<Item = u8>> Iterator for CountedIter<I> {
+    type Item = u8;
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.inner.next();
+        if next.is_some() {
+            self.count += 1;
+        }
+        next
     }
 }
 

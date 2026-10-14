@@ -4,9 +4,60 @@ use crate::object_pool::colour::Colour;
 use crate::object_pool::object::*;
 use crate::object_pool::object_attributes::{MacroRef, ObjectLabel, ObjectRef, Point};
 use crate::object_pool::object_id::ObjectId;
+use crate::object_pool::vt_version::VtVersion;
+use std::cell::Cell;
+
+thread_local! {
+    static ACTIVE_VT_VERSION: Cell<Option<VtVersion>> = const { Cell::new(None) };
+    static LEGACY_PROJECT_LAYOUT: Cell<bool> = const { Cell::new(false) };
+}
 
 impl Object {
     pub fn read(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        Self::read_in_context(data, None, false)
+    }
+
+    /// Read one object using version-dependent wire rules.
+    ///
+    /// VT5+ extended macro references are accepted only for versions that
+    /// support them, and VT2–VT3 require zero local string bytes when a
+    /// string variable supplies the value.
+    pub fn read_for_version(
+        data: &mut dyn Iterator<Item = u8>,
+        version: VtVersion,
+    ) -> Result<Self, ParseError> {
+        if !(2..=6).contains(&u8::from(version)) {
+            return Err(ParseError::UnsupportedVtVersion);
+        }
+        Self::read_in_context(data, Some(version), false)
+    }
+
+    /// Read one object in the historical `.aitp` v1 layout. This preserves the
+    /// v1 Working Set Special Controls representation, which omitted its
+    /// extensible `bytes to follow` field.
+    pub fn read_legacy_project(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
+        Self::read_in_context(data, None, true)
+    }
+
+    fn read_in_context(
+        data: &mut dyn Iterator<Item = u8>,
+        version: Option<VtVersion>,
+        legacy_project: bool,
+    ) -> Result<Self, ParseError> {
+        ACTIVE_VT_VERSION.with(|active| {
+            let previous = active.replace(version);
+            let result = LEGACY_PROJECT_LAYOUT.with(|legacy| {
+                let previous_legacy = legacy.replace(legacy_project);
+                let result = Self::read_inner(data);
+                legacy.set(previous_legacy);
+                result
+            });
+            active.set(previous);
+            result
+        })
+    }
+
+    fn read_inner(data: &mut dyn Iterator<Item = u8>) -> Result<Self, ParseError> {
         let id = Self::read_u16(data)?.try_into()?;
         let object_type = Self::read_u8(data)?.try_into()?;
 
@@ -77,7 +128,7 @@ impl Object {
     ) -> Result<Vec<ObjectId>, ParseError> {
         let mut objs = Vec::new();
         for _ in 0..nr_of_objects {
-            objs.push(Self::read_u16(data)?.clamp(0, u16::MAX - 1).try_into()?);
+            objs.push(Self::read_u16(data)?.try_into()?);
         }
         Ok(objs)
     }
@@ -114,11 +165,37 @@ impl Object {
         nr_of_macros: usize,
     ) -> Result<Vec<MacroRef>, ParseError> {
         let mut refs = Vec::new();
-        for _ in 0..nr_of_macros {
-            refs.push(MacroRef {
-                event_id: Self::read_u8(data)?.into(),
-                macro_id: Self::read_u8(data)?,
-            })
+        let mut slots = 0;
+        while slots < nr_of_macros {
+            let event_id = Self::read_u8(data)?;
+            let low_id = Self::read_u8(data)?;
+            slots += 1;
+            if event_id == 255 {
+                if ACTIVE_VT_VERSION
+                    .with(Cell::get)
+                    .is_some_and(|v| u8::from(v) <= 4)
+                {
+                    return Err(ParseError::ExtendedMacroUnsupported);
+                }
+                if slots >= nr_of_macros {
+                    return Err(ParseError::TruncatedExtendedMacroReference);
+                }
+                let extended_event = Self::read_u8(data)?;
+                let high_id = Self::read_u8(data)?;
+                slots += 1;
+                if extended_event == 255 {
+                    return Err(ParseError::InvalidExtendedMacroReference);
+                }
+                refs.push(MacroRef {
+                    event_id: extended_event.into(),
+                    macro_id: u16::from_le_bytes([low_id, high_id]),
+                });
+            } else {
+                refs.push(MacroRef {
+                    event_id: event_id.into(),
+                    macro_id: low_id.into(),
+                });
+            }
         }
         Ok(refs)
     }
@@ -322,6 +399,17 @@ impl Object {
         }
         Ok(s)
     }
+    fn read_vt_string(
+        len: usize,
+        data: &mut dyn Iterator<Item = u8>,
+    ) -> Result<super::object::VtString, ParseError> {
+        let bytes = (0..len)
+            .map(|_| data.next().ok_or(ParseError::DataEmpty))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(super::object::VtString::Encoded {
+            encoded_bytes: bytes,
+        })
+    }
     fn read_name(data: &mut dyn Iterator<Item = u8>) -> Result<NAME, ParseError> {
         let name: [Option<u8>; 8] = [
             data.next(),
@@ -493,13 +581,25 @@ impl Object {
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
+        let background_colour = Self::read_u8(data)?.into();
+        let width = Self::read_u16(data)?;
+        let foreground_colour = Self::read_u16(data)?.into();
+        let variable_reference = Self::read_u16(data)?.into();
+        let value = Self::read_u8(data)?;
+        if value > 1
+            && ACTIVE_VT_VERSION
+                .with(Cell::get)
+                .is_some_and(|v| u8::from(v) <= 3)
+        {
+            return Err(ParseError::BooleanOutOfRange);
+        }
         let mut o = InputBoolean {
             id,
-            background_colour: Self::read_u8(data)?.into(),
-            width: Self::read_u16(data)?,
-            foreground_colour: Self::read_u16(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
-            value: Self::read_bool(data)?,
+            background_colour,
+            width,
+            foreground_colour,
+            variable_reference,
+            value,
             enabled: Self::read_bool(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -514,17 +614,27 @@ impl Object {
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
+        let width = Self::read_u16(data)?;
+        let height = Self::read_u16(data)?;
+        let background_colour = Self::read_u8(data)?.into();
+        let font_attributes = Self::read_u16(data)?.into();
+        let input_attributes = Self::read_u16(data)?.into();
+        let options = Self::read_u8(data)?.into();
+        let variable_reference = Self::read_u16(data)?.into();
+        let justification = Self::read_u8(data)?.into();
+        let string_len = Self::read_u8(data)?.into();
+        Self::validate_local_string_len(variable_reference, string_len)?;
         let mut o = InputString {
             id,
-            width: Self::read_u16(data)?,
-            height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.into(),
-            input_attributes: Self::read_u16(data)?.into(),
-            options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
-            justification: Self::read_u8(data)?.into(),
-            value: Self::read_string(Self::read_u8(data)?.into(), data)?,
+            width,
+            height,
+            background_colour,
+            font_attributes,
+            input_attributes,
+            options,
+            variable_reference,
+            justification,
+            value: Self::read_vt_string(string_len, data)?,
             enabled: Self::read_bool(data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
@@ -594,16 +704,25 @@ impl Object {
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
+        let width = Self::read_u16(data)?;
+        let height = Self::read_u16(data)?;
+        let background_colour = Self::read_u8(data)?.into();
+        let font_attributes = Self::read_u16(data)?.into();
+        let options = Self::read_u8(data)?.into();
+        let variable_reference = Self::read_u16(data)?.into();
+        let justification = Self::read_u8(data)?.into();
+        let string_len = Self::read_u16(data)?.into();
+        Self::validate_local_string_len(variable_reference, string_len)?;
         let mut o = OutputString {
             id,
-            width: Self::read_u16(data)?,
-            height: Self::read_u16(data)?,
-            background_colour: Self::read_u8(data)?.into(),
-            font_attributes: Self::read_u16(data)?.into(),
-            options: Self::read_u8(data)?.into(),
-            variable_reference: Self::read_u16(data)?.into(),
-            justification: Self::read_u8(data)?.into(),
-            value: Self::read_string(Self::read_u16(data)?.into(), data)?,
+            width,
+            height,
+            background_colour,
+            font_attributes,
+            options,
+            variable_reference,
+            justification,
+            value: Self::read_vt_string(string_len, data)?,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -851,22 +970,46 @@ impl Object {
     ) -> Result<Self, ParseError> {
         let o = StringVariable {
             id,
-            value: Self::read_string(Self::read_u16(data)?.into(), data)?,
+            value: Self::read_vt_string(Self::read_u16(data)?.into(), data)?,
         };
 
         Ok(Object::StringVariable(o))
+    }
+
+    fn validate_local_string_len(
+        variable_reference: super::object_id::NullableObjectId,
+        length: usize,
+    ) -> Result<(), ParseError> {
+        if length > 0
+            && variable_reference.0.is_some()
+            && ACTIVE_VT_VERSION
+                .with(Cell::get)
+                .is_some_and(|v| u8::from(v) <= 3)
+        {
+            return Err(ParseError::UnexpectedLocalStringWithVariable);
+        }
+        Ok(())
     }
 
     fn read_font_attributes(
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
+        let font_colour = Self::read_u8(data)?.into();
+        let raw_font_size = Self::read_u8(data)?;
+        let font_type = Self::read_u8(data)?.into();
+        let font_style: super::object_attributes::FontStyle = Self::read_u8(data)?.into();
+        let font_size = if font_style.proportional {
+            super::object_attributes::FontSize::Proportional(raw_font_size)
+        } else {
+            super::object_attributes::FontSize::NonProportional(raw_font_size.into())
+        };
         let mut o = FontAttributes {
             id,
-            font_colour: Self::read_u8(data)?.into(),
-            font_size: Self::read_u8(data)?.into(),
-            font_type: Self::read_u8(data)?.into(),
-            font_style: Self::read_u8(data)?.into(),
+            font_colour,
+            font_size,
+            font_type,
+            font_style,
             macro_refs: Vec::with_capacity(Self::read_u8(data)?.into()),
         };
 
@@ -1269,13 +1412,10 @@ impl Object {
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
-        let mut o = GraphicData {
-            id,
-            format: Self::read_u8(data)?,
-            data: Vec::with_capacity(Self::read_u32(data)?.try_into().unwrap()),
-        };
-
-        o.data.extend(Self::read_bytes(data, o.data.capacity())?);
+        let format = Self::read_u8(data)?;
+        let data_len = Self::read_u32(data)? as usize;
+        let data = Self::read_bytes(data, data_len)?;
+        let o = GraphicData { id, format, data };
 
         Ok(Object::GraphicData(o))
     }
@@ -1284,17 +1424,35 @@ impl Object {
         id: ObjectId,
         data: &mut dyn Iterator<Item = u8>,
     ) -> Result<Self, ParseError> {
+        let legacy_project = LEGACY_PROJECT_LAYOUT.with(Cell::get);
+        let bytes_to_follow = if legacy_project {
+            None
+        } else {
+            let length = Self::read_u16(data)? as usize;
+            if length < 5 {
+                return Err(ParseError::InvalidExtensibleObjectLength);
+            }
+            Some(length)
+        };
+        let id_of_colour_map = Self::read_u16(data)?.into();
+        let id_of_colour_palette = Self::read_u16(data)?.into();
+        let number_of_language_pairs = Self::read_u8(data)? as usize;
+        let known_bytes = 5 + number_of_language_pairs * 4;
+        if bytes_to_follow.is_some_and(|length| known_bytes > length) {
+            return Err(ParseError::InvalidExtensibleObjectLength);
+        }
         let mut o = WorkingSetSpecialControls {
             id,
-            id_of_colour_map: Self::read_u16(data)?.into(),
-            id_of_colour_palette: Self::read_u16(data)?.into(),
-            language_pairs: Vec::with_capacity(Self::read_u8(data)?.into()),
+            id_of_colour_map,
+            id_of_colour_palette,
+            language_pairs: Vec::with_capacity(number_of_language_pairs),
         };
 
-        o.language_pairs.extend(Self::read_language_pairs(
-            data,
-            o.language_pairs.capacity(),
-        )?);
+        o.language_pairs
+            .extend(Self::read_language_pairs(data, number_of_language_pairs)?);
+        for _ in known_bytes..bytes_to_follow.unwrap_or(known_bytes) {
+            Self::read_u8(data)?;
+        }
 
         Ok(Object::WorkingSetSpecialControls(o))
     }

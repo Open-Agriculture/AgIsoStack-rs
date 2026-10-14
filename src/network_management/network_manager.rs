@@ -357,7 +357,7 @@ mod tests {
 
         assert_eq!(
             <NAME as Into<u64>>::into(new_cf.borrow().get_name()),
-            test_name.into()
+            u64::from(test_name)
         );
     }
 }

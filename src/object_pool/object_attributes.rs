@@ -3,11 +3,12 @@ use bitvec::field::BitField;
 use bitvec::order::{Lsb0, Msb0};
 use bitvec::vec::BitVec;
 use bitvec::view::BitView;
+use serde::{Deserialize, Serialize};
 use strum_macros::FromRepr;
 
 use super::object_id::NullableObjectId;
 
-#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum WindowType {
     FreeForm = 0,
@@ -43,7 +44,7 @@ impl From<WindowType> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum WindowMaskCellFormat {
     CF1x1,
     CF1x2,
@@ -110,7 +111,7 @@ impl From<WindowMaskCellFormat> for u16 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WindowMaskOptions {
     pub available: bool,
     pub transparent: bool,
@@ -136,7 +137,7 @@ impl From<WindowMaskOptions> for u8 {
     }
 }
 
-#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Event {
     Reserved = 0,
@@ -206,7 +207,7 @@ impl From<Event> for u8 {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct ObjectRef {
     pub id: ObjectId,
     pub offset: Point<i16>,
@@ -214,13 +215,13 @@ pub struct ObjectRef {
     // pub y: i16,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct MacroRef {
-    pub macro_id: u8,
+    pub macro_id: u16,
     pub event_id: Event,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
@@ -237,7 +238,7 @@ impl core::ops::Add<Point<i16>> for Point<u16> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ObjectLabel {
     pub id: ObjectId,
     pub string_variable_reference: NullableObjectId,
@@ -245,7 +246,7 @@ pub struct ObjectLabel {
     pub graphic_representation: NullableObjectId,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct ButtonOptions {
     pub latchable: bool,
     pub state: ButtonState,
@@ -283,7 +284,7 @@ impl From<ButtonOptions> for u8 {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum ButtonState {
     Released,
     Latched,
@@ -307,7 +308,7 @@ impl From<bool> for ButtonState {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct InputStringOptions {
     pub transparent: bool,
     pub auto_wrap: bool,
@@ -336,7 +337,7 @@ impl From<InputStringOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Alignment {
     pub horizontal: HorizontalAlignment,
     pub vertical: VerticalAlignment,
@@ -371,7 +372,7 @@ impl From<Alignment> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum HorizontalAlignment {
     Left = 0,
     Middle = 1,
@@ -401,7 +402,7 @@ impl From<HorizontalAlignment> for [bool; 2] {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum VerticalAlignment {
     Top = 0,
     Middle = 1,
@@ -431,7 +432,7 @@ impl From<VerticalAlignment> for [bool; 2] {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct InputNumberOptions {
     pub enabled: bool,
     pub real_time_editing: bool,
@@ -457,7 +458,7 @@ impl From<InputNumberOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum FormatType {
     Decimal,
     Exponential,
@@ -481,7 +482,7 @@ impl From<FormatType> for bool {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct InputListOptions {
     pub enabled: bool,
     pub real_time_editing: bool,
@@ -507,7 +508,7 @@ impl From<InputListOptions> for u8 {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct OutputStringOptions {
     pub transparent: bool,
     pub auto_wrap: bool,
@@ -525,7 +526,7 @@ impl From<u8> for OutputStringOptions {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct NumberOptions {
     pub transparent: bool,
     pub display_leading_zeros: bool,
@@ -545,7 +546,7 @@ impl From<u8> for NumberOptions {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum LineDirection {
     TopLeftToBottomRight,
     BottomLeftToTopRight,
@@ -593,7 +594,7 @@ impl From<OutputStringOptions> for u8 {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum ColorFormat {
     ColorMonochrome,
     Color4Bit,
@@ -621,7 +622,7 @@ impl From<u8> for ColorFormat {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum ColorOption {
     ForegroundBackground,
     LineFontFill,
@@ -645,7 +646,7 @@ impl From<ColorOption> for bool {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct GraphicsContextOptions {
     pub transparent: bool,
     pub color: ColorOption,
@@ -671,7 +672,7 @@ impl From<GraphicsContextOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KeyGroupOptions {
     pub available: bool,
     pub transparent: bool,
@@ -697,7 +698,7 @@ impl From<KeyGroupOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeflectionDirection {
     AntiClockwise,
     Clockwise,
@@ -721,7 +722,7 @@ impl From<DeflectionDirection> for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputMeterOptions {
     pub draw_arc: bool,
     pub draw_border: bool,
@@ -753,7 +754,7 @@ impl From<OutputMeterOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BarGraphType {
     Filled,
     NotFilled,
@@ -777,7 +778,7 @@ impl From<BarGraphType> for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AxisOrientation {
     Vertical,
     Horizontal,
@@ -801,7 +802,7 @@ impl From<AxisOrientation> for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GrowDirection {
     GrowLeftDown,
     GrowRightUp,
@@ -825,7 +826,7 @@ impl From<GrowDirection> for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputLinearBarGraphOptions {
     pub draw_border: bool,
     pub draw_target_line: bool,
@@ -863,7 +864,7 @@ impl From<OutputLinearBarGraphOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputArchedBarGraphOptions {
     pub draw_border: bool,
     pub draw_target_line: bool,
@@ -906,7 +907,7 @@ impl From<OutputArchedBarGraphOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataCodeType {
     Raw,
     RunLength,
@@ -930,7 +931,7 @@ impl From<DataCodeType> for bool {
     }
 }
 
-#[derive(FromRepr, Debug, PartialEq, Clone, Copy)]
+#[derive(FromRepr, Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum PictureGraphicFormat {
     Monochrome = 0,
@@ -950,7 +951,7 @@ impl From<PictureGraphicFormat> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PictureGraphicOptions {
     pub transparent: bool,
     pub flashing: bool,
@@ -981,7 +982,7 @@ impl From<PictureGraphicOptions> for u8 {
 
 /// Represents the non-proportional font sizes as per the standard.
 /// Each variant corresponds to a pixel width × height combination.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum NonProportionalFontSize {
     Px6x8 = 0,
@@ -1075,7 +1076,7 @@ impl From<NonProportionalFontSize> for u8 {
 /// Represents the font size attribute. If proportional font rendering is enabled
 /// (bit 7 in font_style), the font size is a pixel height (8 to N). If not proportional,
 /// it is one of the predefined non-proportional sizes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FontSize {
     NonProportional(NonProportionalFontSize),
     Proportional(u8), // 8 to N pixel height
@@ -1100,7 +1101,7 @@ impl From<FontSize> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FontType {
     /// 0: ISO 8859-1 (ISO Latin 1)
     Latin1,
@@ -1159,7 +1160,7 @@ impl From<FontType> for u8 {
         }
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FontStyle {
     pub bold: bool,
     pub crossed_out: bool,
@@ -1202,7 +1203,7 @@ impl From<FontStyle> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExternalObjectDefinitionOptions {
     pub enabled: bool,
 }
@@ -1225,7 +1226,7 @@ impl From<ExternalObjectDefinitionOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExternalReferenceNameOptions {
     pub enabled: bool,
 }
@@ -1248,7 +1249,7 @@ impl From<ExternalReferenceNameOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AnimationSequence {
     SingleShot,
     Loop,
@@ -1272,7 +1273,7 @@ impl From<AnimationSequence> for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DisabledBehaviour {
     Pause,
     ResetToFirst,
@@ -1302,7 +1303,7 @@ impl From<DisabledBehaviour> for [bool; 2] {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnimationOptions {
     pub animation_sequence: AnimationSequence,
     pub disabled_behaviour: DisabledBehaviour,
@@ -1333,7 +1334,7 @@ impl From<AnimationOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ColourPaletteOptions {}
 
 impl From<u8> for ColourPaletteOptions {
@@ -1351,7 +1352,7 @@ impl From<ColourPaletteOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScaledGraphicOptions {
     pub flashing: bool,
 }
@@ -1374,7 +1375,7 @@ impl From<ScaledGraphicOptions> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum AuxiliaryFunctionType {
     /// 0 = Boolean (Latching), two-position switch (maintains position)
@@ -1493,7 +1494,7 @@ impl From<AuxiliaryFunctionType> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FunctionAttributes {
     pub function_type: AuxiliaryFunctionType, // Bit 0-4
     pub critical: bool,                       // Bit 5

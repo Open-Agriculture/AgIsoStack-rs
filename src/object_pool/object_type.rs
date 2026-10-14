@@ -1,7 +1,8 @@
 use crate::object_pool::ParseError;
 use crate::object_pool::ParseError::UnknownObjectType;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
 pub enum ObjectType {
     WorkingSet = 0,
     DataMask = 1,

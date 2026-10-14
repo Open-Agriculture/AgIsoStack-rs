@@ -15,7 +15,7 @@ pub use colour::Colour;
 pub use object_attributes::ObjectRef;
 pub use object_id::NullableObjectId;
 pub use object_id::ObjectId;
-pub use object_pool::ObjectPool;
+pub use object_pool::{ObjectPool, PoolCodecError};
 pub use object_type::ObjectType;
 
 #[derive(Debug)]
@@ -25,4 +25,9 @@ pub enum ParseError {
     UnexpectedNullObjectId,
     BooleanOutOfRange,
     UnsupportedVtVersion,
+    ExtendedMacroUnsupported,
+    TruncatedExtendedMacroReference,
+    InvalidExtendedMacroReference,
+    UnexpectedLocalStringWithVariable,
+    InvalidExtensibleObjectLength,
 }

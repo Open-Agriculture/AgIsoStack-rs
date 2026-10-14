@@ -1,8 +1,17 @@
 use crate::object_pool::ParseError;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[serde(transparent)]
 pub struct ObjectId {
     id: u16,
+}
+
+impl<'de> Deserialize<'de> for ObjectId {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let id = u16::deserialize(deserializer)?;
+        Self::new(id).map_err(|_| serde::de::Error::custom("65535 is reserved for null references"))
+    }
 }
 
 impl ObjectId {
@@ -30,7 +39,8 @@ impl ObjectId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct NullableObjectId(pub Option<ObjectId>);
 
 impl NullableObjectId {

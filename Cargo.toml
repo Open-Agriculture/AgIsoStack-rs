@@ -9,6 +9,7 @@ keywords = ["agriculture", "can", "canbus", "isobus", "j1939", "agritech", "smar
 [dependencies]
 bitvec = "1.0.1"
 rand = "0.8.5"
+serde = { version = "1.0", features = ["derive"] }
 socketcan = { version = "2.0.0", optional = true }
 strum_macros = "0.25.2"
 
@@ -22,6 +23,7 @@ ctrlc = "3.4.0"
 # TODO: Add optional tracing to the main library
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+serde_json = "1.0"
 
 [[example]]
 name = "forward"

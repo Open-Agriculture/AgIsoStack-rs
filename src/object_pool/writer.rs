@@ -15,9 +15,225 @@ use crate::object_pool::object::{
 };
 use crate::object_pool::object_attributes::{MacroRef, ObjectLabel, ObjectRef, Point};
 use crate::object_pool::object_id::ObjectId;
+use crate::object_pool::vt_version::VtVersion;
+use std::cell::Cell;
+
+thread_local! {
+    static ACTIVE_VT_VERSION: Cell<VtVersion> = const { Cell::new(VtVersion::Version6) };
+}
 
 impl Object {
     pub fn write(&self) -> Vec<u8> {
+        self.try_write()
+            .expect("object string exceeds its ISO 11783-6 wire length field")
+    }
+
+    /// Serialize this object, rejecting strings that cannot fit their wire length field.
+    pub fn try_write(&self) -> Result<Vec<u8>, String> {
+        self.try_write_for_version(VtVersion::Version6)
+    }
+
+    /// Serialize this object using the selected VT wire rules.
+    ///
+    /// Returns an error when the selected version cannot represent a macro
+    /// reference, Boolean value, or string encoding, or when any encoded
+    /// length/count exceeds its wire field.
+    pub fn try_write_for_version(&self, version: VtVersion) -> Result<Vec<u8>, String> {
+        self.validate_wire_for_version(version)?;
+        Ok(ACTIVE_VT_VERSION.with(|active| {
+            let previous = active.replace(version);
+            let bytes = self.write_unchecked();
+            active.set(previous);
+            bytes
+        }))
+    }
+
+    /// Validate version-dependent wire constraints without allocating an
+    /// encoded object buffer.
+    pub fn validate_wire_for_version(&self, version: VtVersion) -> Result<(), String> {
+        if !(2..=6).contains(&u8::from(version)) {
+            return Err(format!("unsupported VT version {}", u8::from(version)));
+        }
+        if u8::from(version) <= 3 {
+            if let Object::InputBoolean(value) = self {
+                if value.value > 1 {
+                    return Err("VT2/VT3 require Input Boolean values of 0 or 1".into());
+                }
+            }
+        }
+        let (value, max_len) = match self {
+            Object::InputString(o) => (Some(&o.value), 255usize),
+            Object::OutputString(o) => (Some(&o.value), u16::MAX as usize),
+            Object::StringVariable(o) => (Some(&o.value), u16::MAX as usize),
+            _ => (None, 0),
+        };
+        let omits_local_string = u8::from(version) <= 3
+            && match self {
+                Object::InputString(o) => o.variable_reference.0.is_some(),
+                Object::OutputString(o) => o.variable_reference.0.is_some(),
+                _ => false,
+            };
+        if let Some(value) = value.filter(|_| !omits_local_string) {
+            let bytes = value.wire_bytes();
+            if u8::from(version) <= 3 && bytes.starts_with(&[0xFF, 0xFE]) {
+                return Err("WideStrings require VT4 or newer".into());
+            }
+            let len = bytes.len();
+            if len > max_len {
+                return Err(format!(
+                    "String is {len} bytes; maximum wire length is {max_len}"
+                ));
+            }
+        }
+        self.validate_wire_counts(version)?;
+        Ok(())
+    }
+
+    fn validate_wire_counts(&self, version: VtVersion) -> Result<(), String> {
+        let mut counts: Vec<(&str, usize, usize)> = Vec::new();
+        match self {
+            Object::WorkingSet(o) => {
+                counts.extend([
+                    ("object references", o.object_refs.len(), 255),
+                    ("language codes", o.language_codes.len(), 255),
+                ]);
+            }
+            Object::DataMask(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::AlarmMask(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::Container(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::SoftKeyMask(o) => counts.push(("objects", o.objects.len(), 255)),
+            Object::Key(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::Button(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::InputList(o) => counts.push(("list items", o.list_items.len(), 255)),
+            Object::OutputList(o) => counts.push(("list items", o.list_items.len(), 255)),
+            Object::OutputPolygon(o) => counts.push(("points", o.points.len(), 255)),
+            Object::PictureGraphic(o) => {
+                counts.push(("graphic data", o.data.len(), u32::MAX as usize))
+            }
+            Object::Macro(o) => {
+                counts.push(("macro command bytes", o.commands.len(), u16::MAX as usize))
+            }
+            Object::AuxiliaryFunctionType1(o) => {
+                counts.push(("object references", o.object_refs.len(), 255))
+            }
+            Object::AuxiliaryInputType1(o) => {
+                counts.push(("object references", o.object_refs.len(), 255))
+            }
+            Object::AuxiliaryFunctionType2(o) => {
+                counts.push(("object references", o.object_refs.len(), 255))
+            }
+            Object::AuxiliaryInputType2(o) => {
+                counts.push(("object references", o.object_refs.len(), 255))
+            }
+            Object::WindowMask(o) => counts.extend([
+                ("objects", o.objects.len(), 255),
+                ("object references", o.object_refs.len(), 255),
+            ]),
+            Object::KeyGroup(o) => counts.push(("objects", o.objects.len(), 255)),
+            Object::InputAttributes(o) => {
+                counts.push(("validation string", o.validation_string.len(), 255))
+            }
+            Object::ExtendedInputAttributes(o) => {
+                counts.push(("code planes", o.code_planes.len(), 255));
+                for plane in &o.code_planes {
+                    counts.push(("character ranges", plane.character_ranges.len(), 255));
+                }
+            }
+            Object::ColourMap(o) => {
+                counts.push(("colour map entries", o.colour_map.len(), u16::MAX as usize))
+            }
+            Object::ObjectLabelReferenceList(o) => {
+                counts.push(("object labels", o.object_labels.len(), u16::MAX as usize))
+            }
+            Object::ExternalObjectDefinition(o) => counts.push(("objects", o.objects.len(), 255)),
+            Object::Animation(o) => counts.push(("object references", o.object_refs.len(), 255)),
+            Object::ColourPalette(o) => {
+                counts.push(("colours", o.colours.len(), u16::MAX as usize))
+            }
+            Object::GraphicData(o) => {
+                counts.push(("graphic data", o.data.len(), u32::MAX as usize))
+            }
+            Object::WorkingSetSpecialControls(o) => {
+                counts.push(("language pairs", o.language_pairs.len(), 255))
+            }
+            Object::StringVariable(o) => counts.push((
+                "string bytes",
+                o.value.wire_bytes().len(),
+                u16::MAX as usize,
+            )),
+            _ => {}
+        }
+        for (name, len, max) in counts {
+            if len > max {
+                return Err(format!("Has {len} {name}; maximum wire count is {max}"));
+            }
+        }
+        let macro_slots: usize = self
+            .macro_refs()
+            .iter()
+            .flat_map(|refs| refs.iter())
+            .map(|r| {
+                if r.macro_id > u8::MAX as u16 && u8::from(version) >= 5 {
+                    2
+                } else {
+                    1
+                }
+            })
+            .sum();
+        if self
+            .macro_refs()
+            .iter()
+            .flat_map(|refs| refs.iter())
+            .any(|r| r.macro_id > 255)
+            && u8::from(version) < 5
+        {
+            return Err("Uses extended macro ID below VT5".into());
+        }
+        if macro_slots > 255 {
+            return Err(format!(
+                "Has {macro_slots} macro reference slots; maximum is 255"
+            ));
+        }
+        Ok(())
+    }
+
+    fn macro_refs(&self) -> Vec<&Vec<MacroRef>> {
+        match self {
+            Object::WorkingSet(o) => vec![&o.macro_refs],
+            Object::DataMask(o) => vec![&o.macro_refs],
+            Object::AlarmMask(o) => vec![&o.macro_refs],
+            Object::Container(o) => vec![&o.macro_refs],
+            Object::SoftKeyMask(o) => vec![&o.macro_refs],
+            Object::Key(o) => vec![&o.macro_refs],
+            Object::Button(o) => vec![&o.macro_refs],
+            Object::InputBoolean(o) => vec![&o.macro_refs],
+            Object::InputString(o) => vec![&o.macro_refs],
+            Object::InputNumber(o) => vec![&o.macro_refs],
+            Object::InputList(o) => vec![&o.macro_refs],
+            Object::OutputString(o) => vec![&o.macro_refs],
+            Object::OutputNumber(o) => vec![&o.macro_refs],
+            Object::OutputLine(o) => vec![&o.macro_refs],
+            Object::OutputRectangle(o) => vec![&o.macro_refs],
+            Object::OutputEllipse(o) => vec![&o.macro_refs],
+            Object::OutputPolygon(o) => vec![&o.macro_refs],
+            Object::OutputMeter(o) => vec![&o.macro_refs],
+            Object::OutputLinearBarGraph(o) => vec![&o.macro_refs],
+            Object::OutputArchedBarGraph(o) => vec![&o.macro_refs],
+            Object::PictureGraphic(o) => vec![&o.macro_refs],
+            Object::FontAttributes(o) => vec![&o.macro_refs],
+            Object::LineAttributes(o) => vec![&o.macro_refs],
+            Object::FillAttributes(o) => vec![&o.macro_refs],
+            Object::InputAttributes(o) => vec![&o.macro_refs],
+            Object::WindowMask(o) => vec![&o.macro_refs],
+            Object::KeyGroup(o) => vec![&o.macro_refs],
+            Object::OutputList(o) => vec![&o.macro_refs],
+            Object::Animation(o) => vec![&o.macro_refs],
+            Object::ScaledGraphic(o) => vec![&o.macro_refs],
+            _ => vec![],
+        }
+    }
+
+    fn write_unchecked(&self) -> Vec<u8> {
         let mut data = Vec::new();
 
         match self {
@@ -106,9 +322,23 @@ impl Object {
     }
     fn write_macro_refs(data: &mut Vec<u8>, macro_refs: &Vec<MacroRef>) {
         for d in macro_refs {
-            Self::write_u8(data, d.event_id);
-            Self::write_u8(data, d.macro_id);
+            if d.macro_id > u8::MAX as u16 {
+                Self::write_u8(data, 255u8);
+                Self::write_u8(data, d.macro_id as u8);
+                Self::write_u8(data, d.event_id);
+                Self::write_u8(data, (d.macro_id >> 8) as u8);
+            } else {
+                Self::write_u8(data, d.event_id);
+                Self::write_u8(data, d.macro_id as u8);
+            }
         }
+    }
+
+    fn macro_ref_slot_count(macro_refs: &[MacroRef]) -> usize {
+        macro_refs
+            .iter()
+            .map(|r| if r.macro_id > 255 { 2 } else { 1 })
+            .sum()
     }
     fn write_bytes(data: &mut Vec<u8>, bytes: &Vec<u8>) {
         for d in bytes {
@@ -205,7 +435,7 @@ impl Object {
         Self::write_u8(data, o.selectable);
         Self::write_u16(data, o.active_mask);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
         Self::write_u8(data, o.language_codes.len() as u8);
 
         Self::write_object_refs(data, &o.object_refs);
@@ -218,7 +448,7 @@ impl Object {
         Self::write_u8(data, o.background_colour);
         Self::write_u16(data, o.soft_key_mask);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -231,7 +461,7 @@ impl Object {
         Self::write_u8(data, o.priority);
         Self::write_u8(data, o.acoustic_signal);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -243,7 +473,7 @@ impl Object {
         Self::write_u16(data, o.height);
         Self::write_u8(data, o.hidden);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -253,7 +483,7 @@ impl Object {
         Self::write_u8(data, ObjectType::SoftKeyMask);
         Self::write_u8(data, o.background_colour);
         Self::write_u8(data, o.objects.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_ids(data, &o.objects);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -264,7 +494,7 @@ impl Object {
         Self::write_u8(data, o.background_colour);
         Self::write_u8(data, o.key_code);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -279,7 +509,7 @@ impl Object {
         Self::write_u8(data, o.key_code);
         Self::write_u8(data, o.options);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -293,7 +523,7 @@ impl Object {
         Self::write_u16(data, o.variable_reference);
         Self::write_u8(data, o.value);
         Self::write_u8(data, o.enabled);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -308,10 +538,17 @@ impl Object {
         Self::write_u8(data, o.options);
         Self::write_u16(data, o.variable_reference);
         Self::write_u8(data, o.justification);
-        Self::write_u8(data, o.value.len() as u8);
-        Self::write_string(data, &o.value);
+        let value = if u8::from(ACTIVE_VT_VERSION.with(Cell::get)) <= 3
+            && o.variable_reference.0.is_some()
+        {
+            Vec::new()
+        } else {
+            o.value.wire_bytes()
+        };
+        Self::write_u8(data, value.len() as u8);
+        data.extend(value);
         Self::write_u8(data, o.enabled);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -333,7 +570,7 @@ impl Object {
         Self::write_u8(data, o.format as u8);
         Self::write_u8(data, o.justification);
         Self::write_u8(data, o.options2);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -346,7 +583,7 @@ impl Object {
         Self::write_u8(data, o.value);
         Self::write_u8(data, o.list_items.len() as u8);
         Self::write_u8(data, o.options);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_nullable_object_ids(data, &o.list_items);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -361,9 +598,16 @@ impl Object {
         Self::write_u8(data, o.options);
         Self::write_u16(data, o.variable_reference);
         Self::write_u8(data, o.justification);
-        Self::write_u16(data, o.value.len() as u16);
-        Self::write_string(data, &o.value);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        let value = if u8::from(ACTIVE_VT_VERSION.with(Cell::get)) <= 3
+            && o.variable_reference.0.is_some()
+        {
+            Vec::new()
+        } else {
+            o.value.wire_bytes()
+        };
+        Self::write_u16(data, value.len() as u16);
+        data.extend(value);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -382,7 +626,7 @@ impl Object {
         Self::write_u8(data, o.nr_of_decimals);
         Self::write_u8(data, o.format as u8);
         Self::write_u8(data, o.justification);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -393,7 +637,7 @@ impl Object {
         Self::write_u16(data, o.width);
         Self::write_u16(data, o.height);
         Self::write_u8(data, o.line_direction);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -405,7 +649,7 @@ impl Object {
         Self::write_u16(data, o.height);
         Self::write_u8(data, o.line_suppression);
         Self::write_u16(data, o.fill_attributes);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -419,7 +663,7 @@ impl Object {
         Self::write_u8(data, o.start_angle);
         Self::write_u8(data, o.end_angle);
         Self::write_u16(data, o.fill_attributes);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -432,7 +676,7 @@ impl Object {
         Self::write_u16(data, o.fill_attributes);
         Self::write_u8(data, o.polygon_type);
         Self::write_u8(data, o.points.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_points(data, &o.points);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -452,7 +696,7 @@ impl Object {
         Self::write_u16(data, o.max_value);
         Self::write_u16(data, o.variable_reference);
         Self::write_u16(data, o.value);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -471,7 +715,7 @@ impl Object {
         Self::write_u16(data, o.value);
         Self::write_u16(data, o.target_value_variable_reference);
         Self::write_u16(data, o.target_value);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -492,7 +736,7 @@ impl Object {
         Self::write_u16(data, o.value);
         Self::write_u16(data, o.target_value_variable_reference);
         Self::write_u16(data, o.target_value);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -506,7 +750,7 @@ impl Object {
         Self::write_u8(data, o.options);
         Self::write_u8(data, o.transparency_colour);
         Self::write_u32(data, o.data.len() as u32);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_bytes(data, &o.data);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -519,17 +763,27 @@ impl Object {
     fn write_string_variable(data: &mut Vec<u8>, o: &StringVariable) {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::StringVariable);
-        Self::write_u16(data, o.value.len() as u16);
-        Self::write_string(data, &o.value);
+        let value = o.value.wire_bytes();
+        Self::write_u16(data, value.len() as u16);
+        data.extend(value);
     }
     fn write_font_attributes(data: &mut Vec<u8>, o: &FontAttributes) {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::FontAttributes);
         Self::write_u8(data, o.font_colour);
-        Self::write_u8(data, o.font_size);
+        let raw_font_size = match o.font_size {
+            super::object_attributes::FontSize::NonProportional(size) => u8::from(size),
+            super::object_attributes::FontSize::Proportional(height) => height,
+        };
+        let mut font_style = o.font_style;
+        font_style.proportional = matches!(
+            o.font_size,
+            super::object_attributes::FontSize::Proportional(_)
+        );
+        Self::write_u8(data, raw_font_size);
         Self::write_u8(data, o.font_type);
-        Self::write_u8(data, o.font_style);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, font_style);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -539,7 +793,7 @@ impl Object {
         Self::write_u8(data, o.line_colour);
         Self::write_u8(data, o.line_width);
         Self::write_u16(data, o.line_art);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -549,7 +803,7 @@ impl Object {
         Self::write_u8(data, o.fill_type);
         Self::write_u8(data, o.fill_colour);
         Self::write_u16(data, o.fill_pattern);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -559,7 +813,7 @@ impl Object {
         Self::write_u8(data, o.validation_type);
         Self::write_u8(data, o.validation_string.len() as u8);
         Self::write_string(data, &o.validation_string);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }
@@ -637,7 +891,7 @@ impl Object {
         Self::write_u16(data, o.window_icon);
         Self::write_u8(data, o.objects.len() as u8);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_nullable_object_ids(data, &o.objects);
         Self::write_object_refs(data, &o.object_refs);
@@ -650,7 +904,7 @@ impl Object {
         Self::write_u16(data, o.name);
         Self::write_u16(data, o.key_group_icon);
         Self::write_u8(data, o.objects.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_ids(data, &o.objects);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -684,7 +938,7 @@ impl Object {
         Self::write_u16(data, o.variable_reference);
         Self::write_u8(data, o.value);
         Self::write_u8(data, o.list_items.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_nullable_object_ids(data, &o.list_items);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -744,7 +998,7 @@ impl Object {
         Self::write_u8(data, o.default_child_index);
         Self::write_u8(data, o.options);
         Self::write_u8(data, o.object_refs.len() as u8);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_object_refs(data, &o.object_refs);
         Self::write_macro_refs(data, &o.macro_refs);
@@ -768,6 +1022,7 @@ impl Object {
     fn write_working_set_special_controls(data: &mut Vec<u8>, o: &WorkingSetSpecialControls) {
         Self::write_u16(data, o.id);
         Self::write_u8(data, ObjectType::WorkingSetSpecialControls);
+        Self::write_u16(data, (5 + o.language_pairs.len() * 4) as u16);
         Self::write_u16(data, o.id_of_colour_map);
         Self::write_u16(data, o.id_of_colour_palette);
         Self::write_u8(data, o.language_pairs.len() as u8);
@@ -782,7 +1037,7 @@ impl Object {
         Self::write_u8(data, o.scale_type);
         Self::write_u8(data, o.options);
         Self::write_u16(data, o.value);
-        Self::write_u8(data, o.macro_refs.len() as u8);
+        Self::write_u8(data, Self::macro_ref_slot_count(&o.macro_refs) as u8);
 
         Self::write_macro_refs(data, &o.macro_refs);
     }

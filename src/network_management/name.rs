@@ -1,5 +1,7 @@
 // Copyright 2023 Raven Industries inc.
 
+use serde::{Deserialize, Serialize};
+
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum NameField {
     IdentityNumber(u32),
@@ -15,7 +17,8 @@ pub enum NameField {
     SelfConfigurableAddress(bool),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct NAME {
     raw_name: u64,
 }
@@ -337,7 +340,7 @@ mod tests {
             .self_configurable_address(true)
             .build();
 
-        assert_eq!(10881826125818888196_u64, name_under_test.into());
+        assert_eq!(10881826125818888196_u64, u64::from(name_under_test));
     }
 
     #[test]
