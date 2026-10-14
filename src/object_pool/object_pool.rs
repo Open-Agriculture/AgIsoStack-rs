@@ -8,8 +8,10 @@ use crate::object_pool::object_id::{NullableObjectId, ObjectId};
 use crate::object_pool::vt_version::VtVersion;
 use crate::object_pool::ObjectType;
 use crate::object_pool::ParseError;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
+use std::sync::OnceLock;
 
 #[derive(Debug)]
 pub struct PoolCodecError {
@@ -33,12 +35,22 @@ impl fmt::Display for PoolCodecError {
 
 impl Error for PoolCodecError {}
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ObjectPool {
     objects: Vec<Object>,
     colour_map: [u8; 256],
     colour_palette: [Colour; 256],
     _supported_vt_version: VtVersion,
+    object_indices: OnceLock<HashMap<ObjectId, usize>>,
+}
+
+impl PartialEq for ObjectPool {
+    fn eq(&self, other: &Self) -> bool {
+        self.objects == other.objects
+            && self.colour_map == other.colour_map
+            && self.colour_palette == other.colour_palette
+            && self._supported_vt_version == other._supported_vt_version
+    }
 }
 
 impl ObjectPool {
@@ -54,6 +66,7 @@ impl ObjectPool {
             colour_map,
             colour_palette: Colour::COLOUR_PALETTE,
             _supported_vt_version: VtVersion::default(),
+            object_indices: OnceLock::new(),
         }
     }
 
@@ -191,6 +204,7 @@ impl ObjectPool {
     where
         I: IntoIterator<Item = u8>,
     {
+        self.object_indices.take();
         let mut data = data.into_iter().peekable();
 
         // Running out of data *between* objects is the normal end of a pool;
@@ -239,15 +253,24 @@ impl ObjectPool {
     }
 
     pub fn add(&mut self, obj: Object) {
+        self.object_indices.take();
         self.objects.push(obj);
     }
 
     pub fn remove(&mut self, id: ObjectId) {
+        self.object_indices.take();
         self.objects.retain(|x| x.id() != id);
     }
 
     pub fn object_by_id(&self, id: ObjectId) -> Option<&Object> {
-        self.objects.iter().find(|&o| o.id() == id)
+        let index = self.object_indices.get_or_init(|| {
+            let mut indices = HashMap::with_capacity(self.objects.len());
+            for (index, object) in self.objects.iter().enumerate() {
+                indices.entry(object.id()).or_insert(index);
+            }
+            indices
+        });
+        index.get(&id).and_then(|&index| self.objects.get(index))
     }
 
     /// Resolve an optional object reference; null or missing references return `None`.
@@ -256,6 +279,7 @@ impl ObjectPool {
     }
 
     pub fn object_mut_by_id(&mut self, id: ObjectId) -> Option<&mut Object> {
+        self.object_indices.take();
         self.objects.iter_mut().find(|o| o.id() == id)
     }
 
@@ -285,6 +309,7 @@ impl ObjectPool {
     }
 
     pub fn objects_mut(&mut self) -> &mut [Object] {
+        self.object_indices.take();
         &mut self.objects
     }
 
@@ -572,6 +597,111 @@ impl IntoIterator for ObjectPool {
 
     fn into_iter(self) -> Self::IntoIter {
         self.objects.into_iter()
+    }
+}
+
+#[cfg(test)]
+mod index_tests {
+    use super::*;
+    use crate::object_pool::object::NumberVariable;
+
+    fn id(value: u16) -> ObjectId {
+        ObjectId::new(value).unwrap()
+    }
+
+    fn variable(object_id: u16, value: u32) -> Object {
+        Object::NumberVariable(NumberVariable {
+            id: id(object_id),
+            value,
+        })
+    }
+
+    fn variable_value(object: Option<&Object>) -> Option<u32> {
+        match object {
+            Some(Object::NumberVariable(variable)) => Some(variable.value),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn lookup_index_preserves_order_and_first_duplicate() {
+        let mut pool = ObjectPool::new();
+        pool.add(variable(4, 10));
+        pool.add(variable(2, 20));
+        pool.add(variable(4, 30));
+
+        assert_eq!(variable_value(pool.object_by_id(id(4))), Some(10));
+        assert_eq!(
+            pool.objects().iter().map(Object::id).collect::<Vec<_>>(),
+            vec![id(4), id(2), id(4)]
+        );
+        assert_eq!(
+            pool,
+            ObjectPool {
+                object_indices: OnceLock::new(),
+                ..pool.clone()
+            }
+        );
+    }
+
+    #[test]
+    fn mutable_access_invalidates_lookup_index() {
+        let mut pool = ObjectPool::new();
+        pool.add(variable(1, 10));
+        pool.add(variable(1, 20));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(10));
+
+        if let Some(Object::NumberVariable(object)) = pool.object_mut_by_id(id(1)) {
+            object.id = id(3);
+        }
+        assert_eq!(variable_value(pool.object_by_id(id(3))), Some(10));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(20));
+
+        let _ = pool.object_by_id(id(1));
+        if let Object::NumberVariable(object) = &mut pool.objects_mut()[1] {
+            object.id = id(5);
+        }
+        assert_eq!(variable_value(pool.object_by_id(id(1))), None);
+        assert_eq!(variable_value(pool.object_by_id(id(5))), Some(20));
+    }
+
+    #[test]
+    fn additions_removals_and_clones_keep_index_current() {
+        let mut pool = ObjectPool::new();
+        pool.add(variable(1, 10));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(10));
+
+        let mut cloned = pool.clone();
+        assert_eq!(cloned, pool);
+        cloned.add(variable(2, 20));
+        assert_eq!(variable_value(cloned.object_by_id(id(2))), Some(20));
+        assert_eq!(variable_value(pool.object_by_id(id(2))), None);
+
+        pool.remove(id(1));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), None);
+        pool.add(variable(1, 30));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(30));
+    }
+
+    #[test]
+    fn parser_mutations_invalidate_lookup_index() {
+        let mut pool = ObjectPool::new();
+        pool.add(variable(1, 10));
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(10));
+
+        let mut parsed = ObjectPool::new();
+        parsed.add(variable(1, 20));
+        pool.try_extend_with_iop(parsed.try_as_iop().unwrap())
+            .unwrap();
+
+        assert_eq!(pool.objects().len(), 1);
+        assert_eq!(variable_value(pool.object_by_id(id(1))), Some(20));
+    }
+
+    #[test]
+    fn object_pool_remains_sync() {
+        fn assert_sync<T: Sync>() {}
+        assert_sync::<ObjectPool>();
     }
 }
 
