@@ -349,7 +349,9 @@ impl Object {
 
     ///
     /// Returns a list of object IDs referenced by this object in the order they are listed
-    /// as attributes in the object specification.
+    /// as attributes in the object specification. Only references into this pool
+    /// are included; External Object Pointer's foreign Object ID (Table B.70)
+    /// is resolved in another Working Set and is excluded.
     ///
     /// # Examples
     /// We can use this method recursively to process objects in a "depth-first" manner
@@ -499,7 +501,6 @@ impl Object {
             Object::ExternalObjectPointer(o) => {
                 push_nullable_id(&mut refs, &o.default_object_id);
                 push_nullable_id(&mut refs, &o.external_reference_name_id);
-                push_nullable_id(&mut refs, &o.external_object_id);
             }
             Object::Animation(o) => extend_object_refs(&mut refs, &o.object_refs),
 
@@ -1439,6 +1440,20 @@ const ISO_8859_7: [u16; 128] = [
 mod vt_string_tests {
     use super::super::object_attributes::{FontType, NonProportionalFontSize};
     use super::*;
+
+    #[test]
+    fn external_pointer_references_only_objects_in_its_own_pool() {
+        let object = Object::ExternalObjectPointer(ExternalObjectPointer {
+            id: ObjectId::new(1).unwrap(),
+            default_object_id: ObjectId::new(2).unwrap().into(),
+            external_reference_name_id: ObjectId::new(3).unwrap().into(),
+            external_object_id: ObjectId::new(4).unwrap().into(),
+        });
+        assert_eq!(
+            object.referenced_objects(),
+            vec![ObjectId::new(2).unwrap(), ObjectId::new(3).unwrap()]
+        );
+    }
 
     #[test]
     fn imported_strings_decode_and_keep_their_original_bytes() {
