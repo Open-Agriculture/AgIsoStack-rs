@@ -227,13 +227,21 @@ impl Object {
         nr_of_colours: usize,
     ) -> Result<Vec<Colour>, ParseError> {
         let mut objs = Vec::new();
-        for _ in 0..nr_of_colours {
+        for index in 0..nr_of_colours {
             let b = Self::read_u8(data)?;
             let g = Self::read_u8(data)?;
             let r = Self::read_u8(data)?;
             let a = Self::read_u8(data)?;
 
-            objs.push(Colour::new_by_rgba(r, g, b, a))
+            // Each entry is a full 8-bit colour, kept as read. Its ID is its
+            // index in the palette, as in the standard palette.
+            objs.push(Colour {
+                id: index as u8,
+                a,
+                r,
+                g,
+                b,
+            })
         }
         Ok(objs)
     }
@@ -1498,6 +1506,42 @@ mod tests {
             .unwrap_or_else(|_| panic!("Failed to read object type",));
 
         id
+    }
+
+    #[test]
+    fn read_colour_palette_keeps_8_bit_colours() {
+        let mut data: IntoIter<u8> = vec![
+            0x07, 0x00, //Object ID
+            0x2D, //Type
+            0x00, //Options
+            0x02, 0x00, //Number of colours
+            0x56, 0x34, 0x12, 0xFF, //Colour 0: blue, green, red, alpha
+            0x32, 0x64, 0xC8, 0x80, //Colour 1: blue, green, red, alpha
+        ]
+        .into_iter();
+
+        let id = read_id_type(&mut data);
+        let Object::ColourPalette(palette) = Object::read_colour_palette(id, &mut data)
+            .unwrap_or_else(|why| panic!("Failed to read colour palette: {:?}", why))
+        else {
+            panic!("Expected a colour palette");
+        };
+
+        let colours: Vec<_> = palette
+            .colours
+            .iter()
+            .map(|c| (c.id, c.r, c.g, c.b, c.a))
+            .collect();
+        assert_eq!(
+            colours,
+            vec![(0, 0x12, 0x34, 0x56, 0xFF), (1, 0xC8, 0x64, 0x32, 0x80)]
+        );
+
+        let mut pool = ObjectPool::new();
+        pool.add(Object::ColourPalette(palette.clone()));
+        let read_back = ObjectPool::try_from_iop(pool.as_iop())
+            .unwrap_or_else(|why| panic!("Failed to read the pool back: {:?}", why));
+        assert_eq!(read_back.objects(), &[Object::ColourPalette(palette)]);
     }
 
     #[test]
